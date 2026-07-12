@@ -1,0 +1,22 @@
+services:
+  keycloak:
+    build:
+      context: ../..
+      dockerfile: tests/integration/Dockerfile
+    command:
+      - start
+      - --optimized
+      - --http-enabled=true
+      - --hostname-strict=false
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: integration-admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: integration-password-not-a-secret
+      KC_SPI_TENCENT_CAPTCHA_SECRET_FILE: ${TENCENT_CAPTCHA_SECRET_FILE_CONTAINER:-/run/secrets/tencent-captcha.env}
+    ports:
+      - "127.0.0.1:${KEYCLOAK_HTTP_PORT:-18080}:8080"
+    volumes:
+      - "${TENCENT_CAPTCHA_SECRET_FILE_HOST:-./secrets/tencent-captcha.env.example}:/run/secrets/tencent-captcha.env:ro"
+      - keycloak-data:/opt/keycloak/data
+
+volumes:
+  keycloak-data:

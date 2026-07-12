@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Private security vulnerability report
+    url: https://github.com/invoker-bot/keycloak-tencent-captcha-authenticator/security/advisories/new
+    about: Report suspected vulnerabilities privately; never open a public issue.
+  - name: Keycloak documentation
+    url: https://www.keycloak.org/documentation
+    about: See official Keycloak documentation for general server questions.
+  - name: Tencent Cloud CAPTCHA documentation
+    url: https://cloud.tencent.com/document/product/1110
+    about: See official Tencent Cloud documentation for service and account questions.

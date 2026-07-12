@@ -1,0 +1,33 @@
+# Maven build output and generated release artifacts
+target/
+dependency-reduced-pom.xml
+bom.json
+bom.xml
+*.cdx.json
+*.cdx.xml
+SHA256SUMS
+*.sha256
+
+# IDE and operating-system metadata
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+.DS_Store
+
+# Local configuration and secrets (keep safe examples)
+.env
+.env.*
+!.env.example
+!*.env.example
+secrets/
+!**/secrets/
+**/secrets/*
+!**/secrets/*.env.example
+
+# Disposable acceptance-harness state
+tests/integration/.runtime/
+__pycache__/
+*.py[cod]

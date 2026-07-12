@@ -1,0 +1,13 @@
+{
+  "name": "keycloak-tencent-captcha-authenticator-browser-tests",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test src/test/js/*.test.mjs"
+  }
+}

@@ -1,0 +1,23 @@
+.tencent-captcha {
+    display: grid;
+    gap: 1rem;
+}
+
+.tencent-captcha__prompt,
+.tencent-captcha__status {
+    margin: 0;
+}
+
+.tencent-captcha__button {
+    min-height: 2.75rem;
+    width: 100%;
+}
+
+.tencent-captcha__button:disabled {
+    cursor: wait;
+    opacity: 0.7;
+}
+
+.tencent-captcha__status:not(:empty) {
+    color: var(--pf-v5-global--danger-color--100, #c9190b);
+}

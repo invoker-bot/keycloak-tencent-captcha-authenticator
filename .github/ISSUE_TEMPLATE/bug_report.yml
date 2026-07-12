@@ -1,0 +1,65 @@
+name: Bug report
+description: Report a reproducible non-security defect
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report vulnerabilities or include credentials, CAPTCHA proofs, client IPs, production names, or Realm exports here. Use the Security tab's private vulnerability reporting form.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      options:
+        - label: I searched existing issues and this is not a security vulnerability.
+          required: true
+        - label: I removed credentials, proof values, IP addresses, user data, production names, and Realm exports.
+          required: true
+  - type: input
+    id: provider-version
+    attributes:
+      label: Provider version
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: keycloak-java
+    attributes:
+      label: Keycloak and Java versions
+      placeholder: Keycloak 26.7.0, Java 21
+    validations:
+      required: true
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation type
+      options:
+        - Distribution JAR
+        - Linux Docker Compose example
+        - Custom container image
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+      description: Explain what you expected and what happened. Use only synthetic angle-bracket placeholders.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include exact safe commands and flow placement, but no secret file contents or live logs.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Redacted diagnostics
+      description: Include bounded error categories only. Do not attach raw Tencent responses or authorization data.
+    validations:
+      required: false

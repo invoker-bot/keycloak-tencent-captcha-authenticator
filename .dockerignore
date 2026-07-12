@@ -1,0 +1,25 @@
+# Version-control and local tooling state
+.git
+.git/**
+.idea
+.vscode
+__pycache__
+**/__pycache__/**
+*.py[cod]
+
+# Build output is copied only after Maven creates the expected JAR
+target
+target/**
+**/target
+**/target/**
+!target/keycloak-tencent-captcha-authenticator-0.1.0.jar
+
+# Local environment files and runtime secrets; only synthetic templates are build inputs
+.env
+**/.env
+.env.*
+**/.env.*
+**/secrets/*
+**/secrets/**
+!*.env.example
+!**/*.env.example
