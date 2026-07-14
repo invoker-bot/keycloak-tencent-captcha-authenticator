@@ -5,7 +5,7 @@ This document describes the `0.1.x` trust boundaries and fail-closed behavior. I
 ## Trust boundaries and privacy data flow
 
 1. Keycloak renders the bundled `tencent-captcha.ftl` challenge with the public `CaptchaAppId`, a fresh 300-second `aidEncrypted`, a fresh 16-byte-derived CSP nonce, the local client-module URL, and the exact Tencent script URL.
-2. The user's browser loads and executes `https://turing.captcha.qcloud.com/TJCaptcha.js` from Tencent.
+2. The user's browser loads and executes the entry script `https://turing.captcha.qcloud.com/TJCaptcha.js` from Tencent; that provider script may load dynamic scripts from the exact origin `https://turing.captcha.gtimg.com`.
 3. On Tencent callback success, the local module posts only `ticket` and `randstr` to Keycloak's exact `url.loginAction`.
 4. Keycloak obtains the client IP from its connection context and sends `Ticket`, `Randstr`, `UserIp`, `CaptchaAppId`, `AppSecretKey`, and `CaptchaType=9` in the HTTPS request body to `https://captcha.tencentcloudapi.com` using `DescribeCaptchaResult` API version `2019-07-22`.
 5. `TENCENT_SECRET_ID` is transmitted in the TC3 `Authorization` header as the `Credential=` identifier, followed by its credential scope. `TENCENT_SECRET_KEY` is used only by the local HMAC key-derivation and request-signing chain and is never transmitted.
@@ -17,26 +17,30 @@ Privacy impact: Tencent-hosted code executes in the user's login browser. CAPTCH
 
 `UserIp` comes from Keycloak's connection context. Deployments behind a reverse proxy must use the Keycloak version's supported proxy-header setting and explicitly restrict trusted proxy addresses. If proxy handling is absent, Tencent may receive the proxy IP; if forwarding headers are trusted from arbitrary clients, an attacker may influence `UserIp`.
 
-Test the effective address through the full load-balancer path without logging the IP. Tencent states that both CAPTCHA domains use dynamic IP addressing; permit the exact hostnames in egress controls rather than fixed proxy IP lists.
+Test the effective address through the full load-balancer path without logging the IP. Tencent CAPTCHA hostnames use dynamic IP addressing; permit the exact hostnames listed below in egress controls rather than fixed proxy IP lists.
 
 ## Exact network destinations
 
 | Initiator | Destination | Purpose |
 | --- | --- | --- |
-| User browser | `https://turing.captcha.qcloud.com/TJCaptcha.js` | Load TJCaptcha and its same-origin browser resources |
+| User browser | `https://turing.captcha.qcloud.com/TJCaptcha.js` | Load the fixed TJCaptcha entry script and its same-origin browser resources |
+| User browser | `https://turing.captcha.gtimg.com` | Load dynamic scripts requested by the Tencent provider script |
 | Keycloak server | `https://captcha.tencentcloudapi.com` | POST TC3-authenticated `DescribeCaptchaResult` verification |
 
-No alternate CAPTCHA script or API host is configurable. DNS, TLS trust, and outbound controls remain the operator's responsibility.
+No alternate CAPTCHA entry script, dynamic-script origin, or API host is configurable. DNS, TLS trust, and outbound controls remain the operator's responsibility.
 
 ## Exact CSP behavior
 
 The provider changes headers only on its own CAPTCHA challenge response. It copies every configured realm browser security header (or Keycloak's default for a missing header), then derives one challenge CSP:
 
 - existing directives and sources are preserved in order;
-- `script-src` receives `'nonce-<request nonce>'` and `https://turing.captcha.qcloud.com`;
+- `script-src` receives `'nonce-<request nonce>'`, `https://turing.captcha.qcloud.com`, and `https://turing.captcha.gtimg.com`;
+- when both `script-src` and `default-src` are absent, the derived `script-src` also receives `'self'` so same-origin login-theme module graphs remain loadable; explicit directives are never overridden;
 - `frame-src` receives `https://turing.captcha.qcloud.com`;
 - `connect-src` receives `https://turing.captcha.qcloud.com`;
-- if `script-src` is absent it inherits `default-src`; if `frame-src` is absent it inherits `child-src`, then `default-src`; if `connect-src` is absent it inherits `default-src`;
+- `worker-src` receives `'self'` and `blob:` (yielding `worker-src 'self' blob:` when absent) so the Tencent challenge can create its blob-backed worker only on this response; an existing directive keeps its sources;
+- the script-only origin `https://turing.captcha.gtimg.com` is never added to `frame-src` or `connect-src`;
+- if `script-src` is absent it inherits an existing `default-src`, otherwise it receives the constrained same-origin fallback above; if `frame-src` is absent it inherits `child-src`, then `default-src`; if `connect-src` is absent it inherits `default-src`;
 - the realm-wide CSP is never mutated and the provider retains no cross-request header state.
 
 The challenge is rejected if the base CSP is blank or ambiguous, has a duplicate directive, or contains any `*`, `'unsafe-inline'`, or `'unsafe-eval'` source. The provider never introduces wildcard sources, `unsafe-inline`, or `unsafe-eval`. Ordinary login, registration, error, master-realm, and account-console pages retain their normal realm headers.
@@ -56,6 +60,8 @@ Each challenge uses a fresh random 16-byte IV and the fixed plaintext `CaptchaAp
 `aidEncrypted` reduces unauthorized use of a leaked public app ID but does not replace server-side proof verification. The browser necessarily receives the encrypted value; it never receives the AppSecretKey.
 
 ## Verification and fail-closed matrix
+
+The browser rejects a `trerror_*` disaster ticket before submission. Its optional diagnostic is reconstructed as exactly `category: "disaster-ticket"` plus an `errorCode` that is an integral number or `null`; `ticket`, `randstr`, `errorMessage`, and all other provider fields are excluded. A diagnostic sink failure cannot change the fail-closed rejection.
 
 The server uses a three-second connect timeout and five-second whole-request timeout and never retries a proof. It rejects before sending if `ticket`, `randstr`, or IP is blank; if their UTF-16 lengths exceed 8,192, 1,024, or 255; or if the ticket starts with `trerror_`.
 

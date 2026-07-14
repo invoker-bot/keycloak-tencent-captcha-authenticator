@@ -78,6 +78,13 @@ class DocumentationTest {
     }
 
     @Test
+    void documentsChallengeScopedBlobWorkerPolicy() throws IOException {
+        for (String file : List.of("README.md", "README.zh-CN.md", "docs/security-model.md")) {
+            assertTrue(read(file).contains("worker-src 'self' blob:"), file);
+        }
+    }
+
+    @Test
     void readmesDocumentExactSecretSchemaWithoutCredentialLikeExamples() throws IOException {
         for (String file : List.of("README.md", "README.zh-CN.md")) {
             String text = read(file);
@@ -106,9 +113,10 @@ class DocumentationTest {
         for (String file : List.of("README.md", "README.zh-CN.md")) {
             String text = read(file);
             assertContainsAll(file, text, "https://turing.captcha.qcloud.com/TJCaptcha.js",
-                    "https://captcha.tencentcloudapi.com", "DescribeCaptchaResult", "Ticket", "Randstr", "UserIp",
-                    "CaptchaAppId", "AppSecretKey", "CaptchaCode == 1", "script-src", "frame-src", "connect-src",
-                    "trusted proxy", "fail-closed", "client IP", "upgrade", "rollback", "uninstall");
+                    "https://turing.captcha.gtimg.com", "https://captcha.tencentcloudapi.com", "DescribeCaptchaResult",
+                    "Ticket", "Randstr", "UserIp", "CaptchaAppId", "AppSecretKey", "CaptchaCode == 1", "script-src",
+                    "frame-src", "connect-src", "disaster-ticket", "errorCode", "trusted proxy", "fail-closed",
+                    "client IP", "upgrade", "rollback", "uninstall");
             assertTrue(text.toLowerCase(Locale.ROOT).contains("privacy"), file + ": privacy");
         }
 
@@ -119,8 +127,9 @@ class DocumentationTest {
                 "rollback");
         String securityModel = read("docs/security-model.md");
         assertContainsAll("docs/security-model.md", securityModel, "https://turing.captcha.qcloud.com/TJCaptcha.js",
-                "https://captcha.tencentcloudapi.com", "Ticket", "Randstr", "UserIp", "CaptchaAppId", "AppSecretKey",
-                "script-src", "frame-src", "connect-src", "trusted proxy", "fail-closed", "client IP");
+                "https://turing.captcha.gtimg.com", "https://captcha.tencentcloudapi.com", "Ticket", "Randstr",
+                "UserIp", "CaptchaAppId", "AppSecretKey", "script-src", "frame-src", "connect-src", "disaster-ticket",
+                "errorCode", "trusted proxy", "fail-closed", "client IP");
         assertTrue(securityModel.toLowerCase(Locale.ROOT).contains("privacy"), "docs/security-model.md: privacy");
     }
 

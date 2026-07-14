@@ -43,6 +43,7 @@ public final class TencentCaptchaAuthenticator implements Authenticator {
     private static final int RANDOM_VALUE_LENGTH = 16;
     private static final int CORRELATION_HEX_LENGTH = 16;
     private static final String CAPTCHA_ORIGIN = "https://turing.captcha.qcloud.com";
+    private static final String CAPTCHA_DYNAMIC_SCRIPT_ORIGIN = "https://turing.captcha.gtimg.com";
 
     private final SecretSource secretSource;
     private final CaptchaVerifierFactory verifierFactory;
@@ -232,11 +233,15 @@ public final class TencentCaptchaAuthenticator implements Authenticator {
             }
             directives.put(normalized, new Directive(tokens[0], sources));
         }
-        mergeDirective(directives, "script-src", inheritedSources(directives, "default-src"),
-                List.of("'nonce-" + nonce + "'", CAPTCHA_ORIGIN));
+        List<String> scriptFallback = directives.containsKey("default-src")
+                ? inheritedSources(directives, "default-src")
+                : List.of("'self'");
+        mergeDirective(directives, "script-src", scriptFallback,
+                List.of("'nonce-" + nonce + "'", CAPTCHA_ORIGIN, CAPTCHA_DYNAMIC_SCRIPT_ORIGIN));
         mergeDirective(directives, "frame-src", inheritedSources(directives, "child-src", "default-src"),
                 List.of(CAPTCHA_ORIGIN));
         mergeDirective(directives, "connect-src", inheritedSources(directives, "default-src"), List.of(CAPTCHA_ORIGIN));
+        mergeDirective(directives, "worker-src", List.of(), List.of("'self'", "blob:"));
         return directives.values().stream()
                 .map(directive -> (directive.name() + " " + String.join(" ", directive.sources())).strip())
                 .reduce((left, right) -> left + "; " + right).orElseThrow();

@@ -23,6 +23,8 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -51,6 +53,7 @@ import org.mockito.ArgumentCaptor;
 class TencentCaptchaAuthenticatorTest {
     private static final String SCRIPT_URL = "https://turing.captcha.qcloud.com/TJCaptcha.js";
     private static final String ORIGIN = "https://turing.captcha.qcloud.com";
+    private static final String DYNAMIC_SCRIPT_ORIGIN = "https://turing.captcha.gtimg.com";
     private static final CaptchaSecrets SECRETS = new CaptchaSecrets("123456789", "app-secret", "secret-id",
             "secret-key");
 
@@ -119,9 +122,13 @@ class TencentCaptchaAuthenticatorTest {
         ArgumentCaptor<Response> challenge = ArgumentCaptor.forClass(Response.class);
         verify(context).challenge(challenge.capture());
         String csp = challenge.getValue().getHeaderString("Content-Security-Policy");
-        assertTrue(csp.contains("script-src 'nonce-" + nonce.getValue() + "' " + ORIGIN));
-        assertTrue(csp.contains("frame-src 'self' " + ORIGIN));
-        assertTrue(csp.contains("connect-src " + ORIGIN));
+        assertEquals(List.of("'self'", "'nonce-" + nonce.getValue() + "'", ORIGIN, DYNAMIC_SCRIPT_ORIGIN),
+                directiveSources(csp, "script-src"));
+        assertEquals(List.of("'self'", ORIGIN), directiveSources(csp, "frame-src"));
+        assertEquals(List.of(ORIGIN), directiveSources(csp, "connect-src"));
+        assertEquals(List.of("'self'", "blob:"), directiveSources(csp, "worker-src"));
+        assertFalse(directiveSources(csp, "frame-src").contains(DYNAMIC_SCRIPT_ORIGIN));
+        assertFalse(directiveSources(csp, "connect-src").contains(DYNAMIC_SCRIPT_ORIGIN));
         assertEquals("SAMEORIGIN", challenge.getValue().getHeaderString("X-Frame-Options"));
         assertFalse(csp.contains("unsafe-inline"));
         assertFalse(csp.contains("unsafe-eval"));
@@ -146,10 +153,27 @@ class TencentCaptchaAuthenticatorTest {
         String csp = TencentCaptchaAuthenticator.captchaContentSecurityPolicy("default-src 'none'; object-src 'none'",
                 nonce);
 
-        assertTrue(csp.contains("script-src 'none' 'nonce-" + nonce + "' " + ORIGIN));
-        assertTrue(csp.contains("frame-src 'none' " + ORIGIN));
-        assertTrue(csp.contains("connect-src 'none' " + ORIGIN));
-        assertFalse(csp.contains("'self'"));
+        assertEquals(List.of("'none'", "'nonce-" + nonce + "'", ORIGIN, DYNAMIC_SCRIPT_ORIGIN),
+                directiveSources(csp, "script-src"));
+        assertEquals(List.of("'none'", ORIGIN), directiveSources(csp, "frame-src"));
+        assertEquals(List.of("'none'", ORIGIN), directiveSources(csp, "connect-src"));
+        assertEquals(List.of("'self'", "blob:"), directiveSources(csp, "worker-src"));
+        assertFalse(directiveSources(csp, "frame-src").contains(DYNAMIC_SCRIPT_ORIGIN));
+        assertFalse(directiveSources(csp, "connect-src").contains(DYNAMIC_SCRIPT_ORIGIN));
+        assertFalse(directiveSources(csp, "script-src").contains("'self'"));
+        assertFalse(directiveSources(csp, "frame-src").contains("'self'"));
+        assertFalse(directiveSources(csp, "connect-src").contains("'self'"));
+    }
+
+    @Test
+    void missingScriptAndDefaultDirectivesAllowSameOriginThemeModules() {
+        String nonce = "A".repeat(22);
+
+        String csp = TencentCaptchaAuthenticator
+                .captchaContentSecurityPolicy("frame-src 'self'; frame-ancestors 'self'; object-src 'none'", nonce);
+
+        assertEquals(List.of("'self'", "'nonce-" + nonce + "'", ORIGIN, DYNAMIC_SCRIPT_ORIGIN),
+                directiveSources(csp, "script-src"));
     }
 
     @Test
@@ -159,6 +183,13 @@ class TencentCaptchaAuthenticatorTest {
 
         assertTrue(csp.contains("frame-src https://frames.example.test " + ORIGIN));
         assertFalse(csp.contains("frame-src 'none'"));
+    }
+
+    private static List<String> directiveSources(String policy, String directiveName) {
+        return Arrays.stream(policy.split(";")).map(String::strip).map(directive -> directive.split("\\s+"))
+                .filter(tokens -> tokens.length > 0 && tokens[0].equalsIgnoreCase(directiveName))
+                .map(tokens -> List.of(Arrays.copyOfRange(tokens, 1, tokens.length))).findFirst()
+                .orElseThrow(() -> new AssertionError("missing CSP directive: " + directiveName));
     }
 
     @Test
