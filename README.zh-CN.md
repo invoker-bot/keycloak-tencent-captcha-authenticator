@@ -4,6 +4,8 @@
 
 这是一个非官方 Keycloak 认证器，以独立的 `REQUIRED` Browser Flow execution 方式加入腾讯云验证码。项目只交付一个轻量 provider JAR，不依赖特定应用、密钥系统、部署平台或第三方登录主题。
 
+可选的 [Sentry 错误上报](docs/configuration.md#optional-sentry-diagnostics) 可记录验证码服务端失败，包括腾讯云 API 密钥失效。在仓库根目录的 `.env` 填写 `SENTRY_DSN` 后运行 `./mvnw -B verify` 即可接入，无需在代码中硬编码；运行时同名环境变量可以覆盖构建配置。上报不包含验证码票据、密码、IP 或密钥。
+
 This is not an official Tencent, Tencent Cloud, or Keycloak project（本项目不是腾讯、腾讯云或 Keycloak 官方项目）。腾讯及腾讯云的名称和标志归腾讯所有；Keycloak 的名称和标志归各自权利人所有。
 
 ## 兼容性与发行标识

@@ -320,6 +320,28 @@ class TencentCaptchaAuthenticatorTest {
         }
     }
 
+    @Test
+    void reportsCredentialErrorsWithoutProofAndContainsDiagnosticSinkFailures() {
+        CaptchaVerificationResult failure = new CaptchaVerificationResult(false, "api-error", null,
+                "AuthFailure.SecretIdNotFound", "00000000-0000-4000-8000-000000000001");
+        AtomicInteger reports = new AtomicInteger();
+        TencentCaptchaAuthenticator authenticator = new TencentCaptchaAuthenticator(() -> SECRETS,
+                (secrets, client) -> (ticket, randstr, userIp) -> failure, () -> mock(HttpClient.class), clock,
+                mock(SecureRandom.class), new VerificationBulkhead(2), (result, correlation) -> {
+                    assertEquals(failure, result);
+                    assertEquals("unavailable", correlation);
+                    reports.incrementAndGet();
+                    throw new IllegalStateException("synthetic telemetry outage");
+                });
+        prepareAction("private-ticket", "private-randstr", "203.0.113.8");
+
+        authenticator.action(context);
+
+        assertEquals(1, reports.get());
+        verify(context, never()).success();
+        verify(context).failureChallenge(eq(AuthenticationFlowError.INVALID_CREDENTIALS), any(Response.class));
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"missing-proof", "proof-too-large", "disaster-ticket", "transport-error",
             "invalid-response", "api-error", "captcha-rejected", "busy"})

@@ -105,6 +105,49 @@ The provider reads and validates the file whenever authentication reaches the ex
 
 Never edit the mounted file in place. An atomic replacement avoids mixed key sets, but some container bind-mount implementations retain the original inode. If the running container does not observe the replacement, recreate the Keycloak container after the atomic install.
 
+## Optional Sentry diagnostics
+
+Copy `.env.example` to the ignored repository-root `.env` and fill `SENTRY_DSN`
+with the project's public HTTPS DSN. Use unquoted `KEY=value` assignments:
+
+```dotenv
+SENTRY_DSN=<SENTRY_DSN>
+SENTRY_ENVIRONMENT=development
+SENTRY_RELEASE=
+```
+
+`./mvnw -B verify` reads `.env` automatically for development and deployment
+builds. Only these three Sentry settings are filtered into
+`META-INF/tencent-captcha-sentry.properties` in the provider JAR. No hostname or
+DSN is hardcoded in source. A build without `.env` has reporting disabled. A JAR
+built with a DSN contains that event-ingestion key; build distributable releases
+without your local `.env`.
+
+At runtime, `SENTRY_DSN`, `SENTRY_ENVIRONMENT`, and `SENTRY_RELEASE` environment
+variables override the corresponding build defaults. An explicitly empty runtime
+`SENTRY_DSN` disables reporting even for an instrumented build. Rebuild after
+changing a build-time `.env`, or recreate the service after changing its runtime
+environment. Do not add Sentry settings to the exact four-line Tencent secret
+file. The Sentry management API token is never needed by the provider.
+
+The server reports API errors, transport errors, invalid responses, unavailable
+CAPTCHA configuration, saturation, and rejected Tencent proofs. Events contain
+only a bounded category, numeric CAPTCHA code, validated Tencent API error code
+and request ID, and a hashed correlation. For example,
+`api_error_code=AuthFailure.SecretIdNotFound` identifies a deleted or invalid
+Tencent API identity, even if the browser completed the challenge successfully.
+Check and replace `TENCENT_SECRET_ID` and `TENCENT_SECRET_KEY` together using the
+rotation procedure above; do not alter the browser callback or accept failed
+verification to work around a credential error.
+
+Reporting uses the [Sentry envelope protocol](https://develop.sentry.dev/sdk/foundations/envelopes/)
+with the existing Java HTTP client and Jackson dependencies. It is asynchronous,
+permits at most two requests in flight, samples each of six fixed failure categories
+at most once per minute per JVM, uses a three-second request timeout, and backs off
+on HTTP 429. It does not retry events or persist them to disk. Sentry outages never
+change authentication decisions. This is CAPTCHA server diagnostics; it does not
+collect arbitrary Keycloak logs, browser exceptions, replay recordings, or user data.
+
 ## Uninstall cleanup
 
 Detach `tencent-captcha` from every bound Browser Flow before removing configuration. Then stop the Keycloak workload; for the provided Compose example, run `docker compose -f examples/docker-compose/compose.yaml down --remove-orphans` before deleting the mounted runtime file. Remove the restricted runtime secret, the path-only `KC_SPI_TENCENT_CAPTCHA_SECRET_FILE` setting, and the deployed bind-mount entry. Revoke the dedicated Tencent API identity only after every consumer has stopped or migrated. See the ordered [README lifecycle procedure](../README.md#upgrade-rollback-and-uninstall).

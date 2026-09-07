@@ -4,6 +4,11 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+### Added
+
+- Optional asynchronous Sentry diagnostics configured through a local `.env` at build time or runtime environment variables, with sampled, bounded events that exclude credentials and proof data.
+- Sanitized Tencent API error codes and request IDs for diagnosing server-side verification failures, including invalid API credentials.
+
 ### Fixed
 
 - Allow Tencent's exact dynamic-script origin `https://turing.captcha.gtimg.com` in `script-src` without broadening `connect-src` or `frame-src`.

@@ -4,6 +4,11 @@
 
 An unofficial Keycloak authenticator that adds Tencent Cloud CAPTCHA as a standalone `REQUIRED` Browser Flow execution. It is delivered as one thin provider JAR and does not depend on a specific application, secret store, deployment platform, or third-party login theme.
 
+Optional [Sentry diagnostics](docs/configuration.md#optional-sentry-diagnostics)
+report CAPTCHA server failures, including invalid Tencent API credentials. Fill
+`SENTRY_DSN` in the ignored root `.env` before `./mvnw -B verify`; no DSN is
+hardcoded. Runtime Sentry environment variables override build defaults.
+
 This is not an official Tencent, Tencent Cloud, or Keycloak project. Tencent and Tencent Cloud names and marks belong to Tencent; Keycloak names and marks belong to their respective owners.
 
 ## Compatibility and release identity

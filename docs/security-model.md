@@ -26,6 +26,7 @@ Test the effective address through the full load-balancer path without logging t
 | User browser | `https://turing.captcha.qcloud.com/TJCaptcha.js` | Load the fixed TJCaptcha entry script and its same-origin browser resources |
 | User browser | `https://turing.captcha.gtimg.com` | Load dynamic scripts requested by the Tencent provider script |
 | Keycloak server | `https://captcha.tencentcloudapi.com` | POST TC3-authenticated `DescribeCaptchaResult` verification |
+| Keycloak server (optional) | HTTPS envelope endpoint selected by `SENTRY_DSN` | Send explicitly constructed CAPTCHA failure diagnostics |
 
 No alternate CAPTCHA entry script, dynamic-script origin, or API host is configurable. DNS, TLS trust, and outbound controls remain the operator's responsibility.
 
@@ -83,6 +84,16 @@ One non-blocking bulkhead is shared by all provider instances in a Keycloak JVM 
 The bulkhead is node-local: every Keycloak process has its own independent limit. It is a last-resort bound on outbound work, not an IP rate limiter or a complete denial-of-service control. Deployments must still enforce request and per-IP rate limits at a trusted reverse proxy or gateway and monitor aggregate accepted, rejected, busy, transport-failure, latency, and saturation behavior using their existing platform telemetry. The provider deliberately adds no metrics dependency.
 
 Accepted proofs are logged at `INFO`, while configuration failures are logged at `ERROR`. Proof rejection, bulkhead saturation, transport failure, and other attacker-triggerable verification outcomes are logged only at `DEBUG` to limit default log amplification. Keep production debug logging disabled except during a bounded investigation, aggregate or sample operational signals outside the provider, and never add proof, credential, IP, raw response, or session values to telemetry.
+
+Optional Sentry reporting provides sampled operational visibility without enabling
+DEBUG logging. Each fixed failure category is sampled at most once per minute per
+JVM; only two asynchronous requests can be in flight. The payload is constructed
+from a bounded category, numeric CAPTCHA code, validated API error code and Tencent
+request ID, and the existing hashed correlation. No exception messages, request
+URLs, cookies, headers, users, IPs, proof fields, or credentials are captured. The
+DSN is loaded from runtime environment or local `.env` build defaults; neither it
+nor the Sentry API token is logged. Reporting failures are contained and never
+alter the fail-closed result. See [Sentry configuration](configuration.md#optional-sentry-diagnostics).
 
 ## Operational responsibilities
 

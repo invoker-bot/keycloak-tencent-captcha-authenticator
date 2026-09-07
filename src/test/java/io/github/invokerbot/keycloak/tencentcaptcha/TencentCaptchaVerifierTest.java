@@ -112,6 +112,30 @@ class TencentCaptchaVerifierTest {
     }
 
     @Test
+    void retainsOnlySafeApiErrorCodeAndRequestIdForCredentialFailures() {
+        CaptchaVerificationResult result = verifyWith(200,
+                "{\"Response\":{\"Error\":{\"Code\":\"AuthFailure.SecretIdNotFound\","
+                        + "\"Message\":\"credential and ticket must never be logged\"},"
+                        + "\"RequestId\":\"00000000-0000-4000-8000-000000000001\"}}");
+
+        assertFalse(result.accepted());
+        assertEquals("api-error", result.category());
+        assertEquals("AuthFailure.SecretIdNotFound", result.apiErrorCode());
+        assertEquals("00000000-0000-4000-8000-000000000001", result.requestId());
+        assertFalse(result.toString().contains("credential and ticket"));
+    }
+
+    @Test
+    void discardsMalformedDiagnosticFields() {
+        CaptchaVerificationResult result = verifyWith(200,
+                "{\"Response\":{\"Error\":{\"Code\":\"secret=value\\nunsafe\"},"
+                        + "\"RequestId\":\"raw-session-secret\"}}");
+
+        assertEquals(null, result.apiErrorCode());
+        assertEquals(null, result.requestId());
+    }
+
+    @Test
     void timeoutFailsClosedWithoutRetry() {
         FakeHttpClient client = new FakeHttpClient(new HttpTimeoutException("synthetic timeout"));
         TencentCaptchaVerifier verifier = new TencentCaptchaVerifier(SECRETS, client, CLOCK);
@@ -154,7 +178,7 @@ class TencentCaptchaVerifierTest {
         return "{\"Response\":{\"CaptchaCode\":1,\"CaptchaMsg\":\"OK\"," + "\"RequestId\":\"request-id\"}}";
     }
 
-    private static String body(HttpRequest request) {
+    static String body(HttpRequest request) {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         CompletableFuture<Void> complete = new CompletableFuture<>();
         request.bodyPublisher().orElseThrow().subscribe(new Flow.Subscriber<>() {
