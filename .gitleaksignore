@@ -1,0 +1,3 @@
+# Exact false positive for the synthetic correlation sequence in SentryReporterTest.
+# Scoped to this committed test line; full-history scanning remains enabled.
+5ba25c610a4e3ce25e2b4873fde98315468b49d1:src/test/java/io/github/invokerbot/keycloak/tencentcaptcha/SentryReporterTest.java:generic-api-key:61
