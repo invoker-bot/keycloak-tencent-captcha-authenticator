@@ -6,7 +6,7 @@ An unofficial Keycloak authenticator that adds Tencent Cloud CAPTCHA as a standa
 
 Optional [Sentry diagnostics](docs/configuration.md#optional-sentry-diagnostics)
 report CAPTCHA server failures, including invalid Tencent API credentials. Fill
-`SENTRY_DSN` in the ignored root `.env` before `./mvnw -B verify`; no DSN is
+`SENTRY_DSN` in the ignored root `.env` before `task build` (or `./mvnw -B verify`); no DSN is
 hardcoded. Runtime Sentry environment variables override build defaults.
 
 This is not an official Tencent, Tencent Cloud, or Keycloak project. Tencent and Tencent Cloud names and marks belong to Tencent; Keycloak names and marks belong to their respective owners.
@@ -37,13 +37,27 @@ Tencent references: [TJCaptcha/Web integration](https://cloud.tencent.com/docume
 
 ## Build
 
-Use Java 21 or newer to build the Java 21 artifact:
+Use Java 21 or newer and [Task v3](https://taskfile.dev/docs/installation)
+to build the Java 21 artifact:
 
 ```bash
-./mvnw -B verify
+task build
 ```
 
-The release JAR is `target/keycloak-tencent-captcha-authenticator-0.1.0.jar`.
+This runs `./mvnw -B verify`, including Java tests and formatting checks. The
+release JAR is `target/keycloak-tencent-captcha-authenticator-0.1.0.jar`.
+
+| Command | Purpose |
+| --- | --- |
+| `task test` | Run Java, browser-script, and Python unit tests |
+| `task verify` | Build the provider and run all local checks |
+| `task test:integration` | Build and run both container acceptance suites on Linux with Docker Compose |
+| `task artifacts` | Verify the project and generate the JAR, checksums, and SBOM in ignored `dist/` |
+| `task --list` | List all tasks, including individual test suites, formatting, and cleanup |
+
+Artifact versions come from `pom.xml`. See [Contributing](CONTRIBUTING.md) for
+prerequisites and the underlying commands. Sentry build defaults still come from
+`.env`; build artifacts intended for public distribution without that local file.
 
 ## JAR installation
 

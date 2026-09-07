@@ -116,8 +116,8 @@ SENTRY_ENVIRONMENT=development
 SENTRY_RELEASE=
 ```
 
-`./mvnw -B verify` reads `.env` automatically for development and deployment
-builds. Only these three Sentry settings are filtered into
+`task build` (which runs `./mvnw -B verify`) reads `.env` automatically through
+Maven for development and deployment builds. Only these three Sentry settings are filtered into
 `META-INF/tencent-captcha-sentry.properties` in the provider JAR. No hostname or
 DSN is hardcoded in source. A build without `.env` has reporting disabled. A JAR
 built with a DSN contains that event-ingestion key; build distributable releases

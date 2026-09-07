@@ -4,7 +4,7 @@
 
 这是一个非官方 Keycloak 认证器，以独立的 `REQUIRED` Browser Flow execution 方式加入腾讯云验证码。项目只交付一个轻量 provider JAR，不依赖特定应用、密钥系统、部署平台或第三方登录主题。
 
-可选的 [Sentry 错误上报](docs/configuration.md#optional-sentry-diagnostics) 可记录验证码服务端失败，包括腾讯云 API 密钥失效。在仓库根目录的 `.env` 填写 `SENTRY_DSN` 后运行 `./mvnw -B verify` 即可接入，无需在代码中硬编码；运行时同名环境变量可以覆盖构建配置。上报不包含验证码票据、密码、IP 或密钥。
+可选的 [Sentry 错误上报](docs/configuration.md#optional-sentry-diagnostics) 可记录验证码服务端失败，包括腾讯云 API 密钥失效。在仓库根目录的 `.env` 填写 `SENTRY_DSN` 后运行 `task build`（或 `./mvnw -B verify`）即可接入，无需在代码中硬编码；运行时同名环境变量可以覆盖构建配置。上报不包含验证码票据、密码、IP 或密钥。
 
 This is not an official Tencent, Tencent Cloud, or Keycloak project（本项目不是腾讯、腾讯云或 Keycloak 官方项目）。腾讯及腾讯云的名称和标志归腾讯所有；Keycloak 的名称和标志归各自权利人所有。
 
@@ -34,13 +34,23 @@ Maven group 中的 `invoker-bot` 有连字符，Java 包名没有。参见 [`0.1
 
 ## 构建
 
-使用 Java 21 或更高版本构建 Java 21 产物：
+使用 Java 21 或更高版本和 [Task v3](https://taskfile.dev/docs/installation) 构建 Java 21 产物：
 
 ```bash
-./mvnw -B verify
+task build
 ```
 
-发行 JAR 为 `target/keycloak-tencent-captcha-authenticator-0.1.0.jar`。
+该命令执行 `./mvnw -B verify`，包含 Java 测试和格式检查。发行 JAR 为 `target/keycloak-tencent-captcha-authenticator-0.1.0.jar`。
+
+| 命令 | 用途 |
+| --- | --- |
+| `task test` | 运行 Java、浏览器脚本和 Python 单元测试 |
+| `task verify` | 构建 provider 并运行全部本地检查 |
+| `task test:integration` | 在 Linux 和 Docker Compose 环境中构建并运行两组容器验收 |
+| `task artifacts` | 完成验证，将 JAR、校验和和 SBOM 生成到已忽略的 `dist/` |
+| `task --list` | 查看全部任务，包括单独测试、格式化和清理命令 |
+
+打包版本号自动读取 `pom.xml`。环境要求和底层命令见 [Contributing](CONTRIBUTING.md)。构建仍会读取 `.env` 中的 Sentry 配置；生成公开分发的产物时应使用不含该本地文件的工作目录。
 
 ## JAR 安装
 
