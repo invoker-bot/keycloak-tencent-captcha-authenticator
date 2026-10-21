@@ -90,7 +90,7 @@ ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
             if args.theme_jar:
                 results['customThemeLocales'] = verify_locales(base, 'invoker-shadcn')
             calls = [json.loads(line) for line in run(['docker', 'logs', server]).splitlines()]
-            assert len(calls) == (11 if args.theme_jar else 7) and all(call['signed'] for call in calls)
+            assert len(calls) == (35 if args.theme_jar else 19) and all(call['signed'] for call in calls)
             assert [call['accepted'] for call in calls] == [False, True, False] + [True] * (len(calls) - 3)
             results['realProviderSignedTlsRequests'] = True
             print(json.dumps(results, indent=2))

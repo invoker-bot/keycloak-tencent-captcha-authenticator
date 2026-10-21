@@ -4,6 +4,12 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+### Added
+
+- Start CAPTCHA automatically for login and registration, including an optional adapter for existing multilingual shadcn themes. Failed checks remain on a manual retry page.
+- Support Tencent invisible verification with strict server-side risk validation: both integral `CaptchaCode == 1` and `EvilLevel == 0` are required. Missing, malformed, unknown, or malicious risk results fail closed.
+- Test risk rejection and benign continuation in real Keycloak login and registration flows using a signed-request TLS fixture.
+
 ## [0.1.2] - 2026-10-22
 
 ### Fixed

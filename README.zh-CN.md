@@ -139,10 +139,15 @@ docker compose -f examples/docker-compose/compose.yaml up --build --detach
 
 ## 运行与安全行为
 
+当前开发版支持登录和注册的[自动触发与无感验证](docs/configuration.md#invisible-verification)：
+进入页面后自动验证一次，服务端校验腾讯返回的风险结果。腾讯控制台的验证机制决定是否出题；
+现有自定义主题需要应用[自动触发适配器](examples/keycloakify/README.md#automatic-and-invisible-verification)。
+此功能尚未包含在已发布的 v0.1.2 中。
+
 - 浏览器加载精确的入口脚本 `https://turing.captcha.qcloud.com/TJCaptcha.js`；该 provider script 可能继续从精确 origin `https://turing.captcha.gtimg.com` 加载动态脚本。Challenge 只把 `ticket` 与 `randstr` 提交到 Keycloak 精确的 `url.loginAction`。
 - 服务端把 `Ticket`、`Randstr`、`UserIp`、`CaptchaAppId`、`AppSecretKey` 和固定的 `CaptchaType=9` 发往 `https://captcha.tencentcloudapi.com`，action 为 `DescribeCaptchaResult`，API version 为 `2019-07-22`。
 - `TENCENT_SECRET_ID` 会在 TC3 `Authorization` header 中作为 `Credential=` 标识发送，后面带 credential scope。`TENCENT_SECRET_KEY` 只用于本地 HMAC 密钥派生与请求签名链，不会传输给腾讯。
-- 只有整数 `CaptchaCode == 1` 才成功。配置缺失、输入无效、`trerror_*`、timeout、传输错误、非 2xx、API 错误、畸形响应及其他 code 一律 fail-closed（关闭式失败）。没有 fail-open 选项，也不会自动重试 proof。浏览器会在提交前拒绝 `trerror_*` disaster ticket；可选诊断只包含 `category: "disaster-ticket"` 与整数 `errorCode`（否则为 `null`），绝不包含 `ticket`、`randstr` 或 `errorMessage`。
+- 只有整数 `CaptchaCode == 1` 且整数 `EvilLevel == 0` 才成功。风险字段缺失、格式错误或恶意结果，以及配置缺失、输入无效、`trerror_*`、timeout、传输错误、非 2xx、API 错误、畸形响应及其他 code 一律 fail-closed（关闭式失败）。没有 fail-open 选项，也不会自动重试 proof。浏览器会在提交前拒绝 `trerror_*` disaster ticket；可选诊断只包含 `category: "disaster-ticket"` 与整数 `errorCode`（否则为 `null`），绝不包含 `ticket`、`randstr` 或 `errorMessage`。
 - 仅在 CAPTCHA response 上，provider 保留 realm browser security headers，并给 `script-src` 增加新 nonce。`https://turing.captcha.qcloud.com` 会加入 `script-src`、`frame-src` 与 `connect-src`，而仅用于脚本的 origin `https://turing.captcha.gtimg.com` 只会加入 `script-src`。若原策略没有 `worker-src`，派生的 challenge 策略会加入 `worker-src 'self' blob:`；若已存在，则保留其来源并只追加 `'self'` 与 `blob:`，让腾讯 challenge 能创建 blob-backed worker。当 realm 同时未定义 `script-src` 与 `default-src` 时，派生策略还会加入 `'self'`，保证同源登录主题 module 可加载；显式的 `script-src` 或 `default-src` 仍保持权威。若策略包含 `*`、`'unsafe-inline'`、`'unsafe-eval'` 或重复 directive，则拒绝 challenge，不会弱化策略。不会修改 realm-wide CSP。
 
 Privacy（隐私）披露：用户浏览器会加载并执行腾讯托管的代码；Keycloak 服务端会把 CAPTCHA proof fields 和 client IP 发给腾讯进行校验。启用前应评估腾讯云条款、隐私文档、留存与区域处理规则，并更新自己的用户隐私声明。

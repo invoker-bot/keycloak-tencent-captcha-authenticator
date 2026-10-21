@@ -81,6 +81,25 @@ class TencentCaptchaVerifierTest {
     }
 
     @Test
+    void rejectsMaliciousInvisibleProofEvenWhenTicketIsValid() {
+        CaptchaVerificationResult result = verifyWith(200, "{\"Response\":{\"CaptchaCode\":1,\"EvilLevel\":100}}");
+        assertFalse(result.accepted());
+        assertEquals("risk-rejected", result.category());
+    }
+
+    @Test
+    void requiresAnExplicitIntegralZeroRiskResult() {
+        for (String field : new String[]{"", ",\"EvilLevel\":null", ",\"EvilLevel\":\"0\"", ",\"EvilLevel\":0.0",
+                ",\"EvilLevel\":false", ",\"EvilLevel\":{}", ",\"EvilLevel\":-1", ",\"EvilLevel\":1",
+                ",\"EvilLevel\":4294967296"}) {
+            CaptchaVerificationResult result = verifyWith(200, "{\"Response\":{\"CaptchaCode\":1" + field + "}}");
+            assertFalse(result.accepted(), field);
+        }
+        assertTrue(verifyWith(200, "{\"Response\":{\"CaptchaCode\":1,\"EvilLevel\":0}}").accepted());
+        assertFalse(verifyWith(200, "{\"Response\":{\"CaptchaCode\":21,\"EvilLevel\":0}}").accepted());
+    }
+
+    @Test
     void rejectsMissingAndOversizedProofWithoutSending() {
         FakeHttpClient client = new FakeHttpClient(200, acceptedBody());
         TencentCaptchaVerifier verifier = new TencentCaptchaVerifier(SECRETS, client, CLOCK);
@@ -175,7 +194,8 @@ class TencentCaptchaVerifierTest {
     }
 
     private static String acceptedBody() {
-        return "{\"Response\":{\"CaptchaCode\":1,\"CaptchaMsg\":\"OK\"," + "\"RequestId\":\"request-id\"}}";
+        return "{\"Response\":{\"CaptchaCode\":1,\"EvilLevel\":0,\"CaptchaMsg\":\"OK\","
+                + "\"RequestId\":\"request-id\"}}";
     }
 
     static String body(HttpRequest request) {

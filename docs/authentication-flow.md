@@ -32,7 +32,7 @@ Do not edit the built-in Browser flow in place. A copy gives the realm an explic
 
 With the recommended order, a fresh interactive username/password login reaches CAPTCHA before credentials are accepted. The execution creates a new 300-second `aidEncrypted` value and a new request CSP nonce for every challenge. The page posts `ticket` and `randstr` only to Keycloak's exact `url.loginAction`; the server verifies the proof before continuing.
 
-The provider succeeds only when Tencent's `DescribeCaptchaResult` returns an integral `CaptchaCode == 1`. Every invalid, unavailable, or ambiguous outcome is fail-closed.
+The provider succeeds only when Tencent's `DescribeCaptchaResult` returns integral `CaptchaCode == 1` and `EvilLevel == 0`. Every invalid, unavailable, or ambiguous outcome is fail-closed.
 
 ## Intentional boundaries
 
@@ -84,11 +84,17 @@ server-resolved `required` flag is false before rendering and form validation.
 
 The built-in `tencent-captcha.ftl` works with Keycloak's active login theme and is the supported default. A realm login theme may override the same template while preserving:
 
-- attributes `captchaAppId`, `aidEncrypted`, `captchaScriptUrl`, `cspNonce`, `captchaLanguage` (the resolved Keycloak locale), and standard `url.loginAction`;
+- attributes `captchaAppId`, `aidEncrypted`, `captchaScriptUrl`, `cspNonce`, `captchaLanguage` (the resolved Keycloak locale), `captchaAutoStart` (boolean), and standard `url.loginAction`;
 - exact POST field names `ticket` and `randstr`;
 - the request-scoped nonce on the local module script;
 - the exact Tencent script URL supplied by `captchaScriptUrl`;
 - accessible button/status behavior and generic localized error messages.
+
+Start once automatically only when `captchaAutoStart` is `true`. The server sets
+it to `false` after rejection so a risk denial cannot cause an automatic POST
+loop. Keep a manual retry for cancellation and errors, and deduplicate activation
+and submission. The selected Tencent application mode determines whether a
+challenge appears; do not infer server acceptance from an invisible callback.
 
 Pass the current page locale to Tencent as `userLanguage`; the bundled client
 accepts `languageTag` and maps Keycloak language tags to SDK codes. Enable realm

@@ -132,6 +132,7 @@ class TencentCaptchaAuthenticatorTest {
                 clock.instant(), Duration.ofSeconds(300), new byte[16]));
         verify(form).setAttribute("captchaScriptUrl", SCRIPT_URL);
         verify(form).setAttribute("captchaLanguage", "en");
+        verify(form).setAttribute("captchaAutoStart", true);
         ArgumentCaptor<String> nonce = ArgumentCaptor.forClass(String.class);
         verify(form).setAttribute(eq("cspNonce"), nonce.capture());
         assertTrue(nonce.getValue().matches("[A-Za-z0-9_-]{22}"));
@@ -373,6 +374,7 @@ class TencentCaptchaAuthenticatorTest {
         verify(context).failureChallenge(eq(AuthenticationFlowError.INVALID_CREDENTIALS), any(Response.class));
         verify(form).setError(eq("captchaVerificationFailed"), any(Object[].class));
         verify(form).createForm("tencent-captcha.ftl");
+        verify(form).setAttribute("captchaAutoStart", false);
         verifyNoPersistenceWrites();
     }
 
