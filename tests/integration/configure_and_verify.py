@@ -20,6 +20,7 @@ CLIENT_ID = "acceptance-client"
 FLOW_ALIAS = "tencent-captcha-test-browser"
 PROVIDER_ID = "tencent-captcha"
 TENCENT_SCRIPT_URL = "https://turing.captcha.qcloud.com/TJCaptcha.js"
+TENCENT_DYNAMIC_SCRIPT_ORIGIN = "https://turing.captcha.gtimg.com"
 BASE_CSP = "frame-src 'self'; frame-ancestors 'self'; object-src 'none'"
 MAX_BODY_BYTES = 2 * 1024 * 1024
 SECURITY_HEADERS = (
@@ -190,11 +191,22 @@ class AcceptanceVerifier:
         nonce = nonce_match.group(1)
         expected_csp = (
             "frame-src 'self' https://turing.captcha.qcloud.com; frame-ancestors 'self'; object-src 'none'; "
-            f"script-src 'nonce-{nonce}' https://turing.captcha.qcloud.com; "
-            "connect-src https://turing.captcha.qcloud.com"
+            f"script-src 'self' 'nonce-{nonce}' https://turing.captcha.qcloud.com {TENCENT_DYNAMIC_SCRIPT_ORIGIN}; "
+            "connect-src https://turing.captcha.qcloud.com; worker-src 'self' blob:"
         )
         csp_values = response.headers.get_all("Content-Security-Policy") or []
-        csp_exact = csp_values == [expected_csp]
+        csp_directives = {
+            tokens[0]: tuple(tokens[1:])
+            for directive in csp_values[0].split(";")
+            if (tokens := directive.strip().split())
+        } if len(csp_values) == 1 else {}
+        csp_exact = (
+            csp_values == [expected_csp]
+            and TENCENT_DYNAMIC_SCRIPT_ORIGIN in csp_directives.get("script-src", ())
+            and TENCENT_DYNAMIC_SCRIPT_ORIGIN not in csp_directives.get("frame-src", ())
+            and TENCENT_DYNAMIC_SCRIPT_ORIGIN not in csp_directives.get("connect-src", ())
+            and csp_directives.get("worker-src") == ("'self'", "blob:")
+        )
 
         script_attribute = re.search(r'data-script-url="([^"]+)"', page)
         script_url_exact = (

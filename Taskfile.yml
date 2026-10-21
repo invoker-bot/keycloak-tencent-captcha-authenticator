@@ -1,0 +1,84 @@
+version: '3'
+
+tasks:
+  default:
+    desc: List available development commands
+    cmds:
+      - task --list
+
+  build:
+    desc: Build the provider JAR and SBOM, including Java tests and formatting checks
+    cmds:
+      - ./mvnw -B verify
+
+  test:
+    desc: Run all Java, browser, and Python unit tests
+    cmds:
+      - task: test:java
+      - task: test:js
+      - task: test:python
+
+  test:java:
+    desc: Run Java unit tests
+    cmds:
+      - ./mvnw -B test
+
+  test:js:
+    desc: Run browser-script unit tests
+    cmds:
+      - npm test
+
+  test:python:
+    desc: Run integration-harness and release-script unit tests
+    cmds:
+      - python3 -m unittest discover -s tests/integration -p 'test_*.py'
+      - python3 -m unittest discover -s scripts/tests
+
+  verify:
+    desc: Build the provider and run the complete local verification set
+    cmds:
+      - task: build
+      - task: test:js
+      - task: test:python
+
+  test:integration:
+    desc: Build and run both fresh-Keycloak container acceptance suites (Linux only)
+    preconditions:
+      - sh: test "$(uname -s)" = Linux
+        msg: Container acceptance requires a Linux host with Docker Compose.
+    cmds:
+      - task: build
+      - python3 tests/integration/run.py
+      - python3 tests/integration/run_public_example.py
+
+  format:
+    desc: Apply Java formatting
+    cmds:
+      - ./mvnw -B spotless:apply
+
+  format:check:
+    desc: Check Java formatting without changing files
+    cmds:
+      - ./mvnw -B spotless:check
+
+  artifacts:
+    desc: Verify the project and generate the JAR, checksums, and SBOM in dist/
+    vars:
+      PROJECT_VERSION:
+        sh: >-
+          python3 -c 'import xml.etree.ElementTree as ET;
+          print(ET.parse("pom.xml").getroot().findtext("{http://maven.apache.org/POM/4.0.0}version"))'
+    cmds:
+      - task: verify
+      - python3 scripts/release_artifacts.py {{.PROJECT_VERSION | shellQuote}}
+      - task: artifacts:verify
+
+  artifacts:verify:
+    desc: Verify the existing dist/ asset set and checksums
+    cmds:
+      - python3 scripts/verify_release_artifacts.py dist
+
+  clean:
+    desc: Remove Maven build output from target/
+    cmds:
+      - ./mvnw -B clean
