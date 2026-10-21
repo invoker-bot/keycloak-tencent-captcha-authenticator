@@ -3,7 +3,10 @@
 
 from __future__ import annotations
 
+import gzip
+import hashlib
 import html
+import io
 import json
 import re
 import urllib.error
@@ -222,15 +225,27 @@ class AcceptanceVerifier:
         if module_match is None:
             raise AcceptanceError("captcha-browser-module-missing")
         module_url = urllib.parse.urljoin(response.url, html.unescape(module_match.group(1)))
-        module = _request(module_url)
-        if module.status != 200:
-            raise AcceptanceError(f"captcha-browser-module-status-{module.status}")
-        import hashlib
         version = urllib.parse.parse_qs(urllib.parse.urlparse(module_url).query)['v'][0]
-        if version != hashlib.sha256(module.body).hexdigest():
-            raise AcceptanceError("captcha-browser-module-version-mismatch")
+        for encoding in ('identity', 'gzip'):
+            module = _request(module_url, headers={'Accept-Encoding': encoding})
+            if module.status != 200:
+                raise AcceptanceError(f"captcha-browser-module-status-{module.status}")
+            body = module.body
+            content_encoding = module.headers.get('Content-Encoding', '').lower()
+            if content_encoding == 'gzip':
+                try:
+                    with gzip.GzipFile(fileobj=io.BytesIO(body)) as stream:
+                        body = _read_bounded(stream)
+                except (OSError, EOFError):
+                    raise AcceptanceError("captcha-browser-module-gzip-invalid") from None
+            elif content_encoding not in ('', 'identity'):
+                raise AcceptanceError("captcha-browser-module-encoding-unsupported")
+            # Keycloak can retain old gzip files across provider/image upgrades.
+            # A correct uncompressed response alone does not prove browser delivery.
+            if version != hashlib.sha256(body).hexdigest():
+                raise AcceptanceError("captcha-browser-module-version-mismatch")
         try:
-            module_source = module.body.decode("utf-8")
+            module_source = body.decode("utf-8")
         except UnicodeDecodeError:
             raise AcceptanceError("captcha-browser-module-not-utf8") from None
         constructor_exact = (

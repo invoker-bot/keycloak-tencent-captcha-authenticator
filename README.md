@@ -180,6 +180,7 @@ Before any lifecycle change, export Keycloak configuration using your normal tes
 
 - **Upgrade:** stop Keycloak; replace the JAR with the new verified version; run `/opt/keycloak/bin/kc.sh build`; start with `--optimized`; confirm provider discovery, CSP, and a protected login.
 - **Rollback:** stop Keycloak; restore the previous JAR; run `/opt/keycloak/bin/kc.sh build`; restart; repeat the smoke checks. Do not mix provider versions.
+- **Theme cache on upgrade or rollback:** while Keycloak is stopped, remove its generated `data/tmp/kc-gzip-cache` directory when retaining the data volume. Keycloak can otherwise serve old compressed JavaScript despite an updated JAR and version query. Verify both identity and gzip resource responses after restart; see [Keycloak's theme cache guidance](https://www.keycloak.org/ui-customization/themes).
 - **Uninstall:** use this order so no running flow or container loses a required provider or secret:
   1. Bind a Browser Flow that does not reference `tencent-captcha` (or remove the execution), test a fresh login, and confirm no realm binding still references the execution.
   2. Stop the Keycloak workload. For the provided Docker Compose example, stop and remove its containers and network before touching the bind-mounted file: `docker compose -f examples/docker-compose/compose.yaml down --remove-orphans`.
