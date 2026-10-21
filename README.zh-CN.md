@@ -6,13 +6,13 @@
 
 ## 界面预览
 
-在登录表单前加入独立的安全验证步骤，由服务端校验腾讯返回的验证码凭证。以下是当前集成的浅色和深色效果：
+在登录表单前加入独立的安全验证步骤，由服务端校验腾讯返回的验证码凭证。切换英文或简体中文后，页面和腾讯验证码弹窗都会跟随所选语言。以下展示两种语言与深浅色效果：
 
-| 浅色模式 | 深色模式 |
+| English · 浅色模式 | 简体中文 · 深色模式 |
 | --- | --- |
-| [![浅色验证码页面](docs/images/captcha-light.jpg)](docs/images/captcha-light.jpg) | [![深色验证码页面](docs/images/captcha-dark.jpg)](docs/images/captcha-dark.jpg) |
+| [![带语言切换菜单的英文浅色验证码页面](docs/images/captcha-en.jpg)](docs/images/captcha-en.jpg) | [![带语言切换菜单的简体中文深色验证码页面](docs/images/captcha-zh-CN.jpg)](docs/images/captcha-zh-CN.jpg) |
 
-截图来自 Keycloak 26.7.0 中实际运行的 v0.1.1，使用演示 realm 和定制的 [Keycloakify shadcn 主题](https://github.com/Oussemasahbeni/keycloakify-shadcn-starter)。卡片、配色和深浅色切换由这套可选主题提供，主题单独分发；插件也自带默认 FreeMarker 页面。参见[自定义主题接入契约](docs/authentication-flow.md#template-override-contract)和[截图说明](docs/images/README.md)。图片展示的是打开腾讯验证码挑战前的页面；注册需要单独配置认证流程。
+截图来自 Keycloak 26.7.0 中实际运行的 v0.1.2，使用演示 realm 和定制的 [Keycloakify shadcn 主题](https://github.com/Oussemasahbeni/keycloakify-shadcn-starter)。卡片、配色和深浅色切换由这套可选主题提供，主题单独分发；插件也自带默认 FreeMarker 页面。参见[自定义主题接入契约](docs/authentication-flow.md#template-override-contract)和[截图说明](docs/images/README.md)。图片展示的是打开腾讯验证码挑战前的页面；注册需要单独配置认证流程。
 
 可选的 [Sentry 错误上报](docs/configuration.md#optional-sentry-diagnostics) 可记录验证码服务端失败，包括腾讯云 API 密钥失效。在仓库根目录的 `.env` 填写 `SENTRY_DSN` 后运行 `task build`（或 `./mvnw -B verify`）即可接入，无需在代码中硬编码；运行时同名环境变量可以覆盖构建配置。上报不包含验证码票据、密码、IP 或密钥。
 
