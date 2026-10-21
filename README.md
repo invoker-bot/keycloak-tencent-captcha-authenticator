@@ -7,13 +7,14 @@ An unofficial Keycloak authenticator that adds Tencent Cloud CAPTCHA as a standa
 ## Preview
 
 Add a dedicated security check before the login form, with server-side verification
-of Tencent's response. Here is the current integration in light and dark mode:
+of Tencent's response. Switch between English and Simplified Chinese; the page
+and Tencent popup follow the selected language. Preview both languages and modes:
 
-| Light | Dark |
+| English · Light | 简体中文 · Dark |
 | --- | --- |
-| [![CAPTCHA page in light mode](docs/images/captcha-light.jpg)](docs/images/captcha-light.jpg) | [![CAPTCHA page in dark mode](docs/images/captcha-dark.jpg)](docs/images/captcha-dark.jpg) |
+| [![English CAPTCHA page in light mode with language selector](docs/images/captcha-en.jpg)](docs/images/captcha-en.jpg) | [![Simplified Chinese CAPTCHA page in dark mode with language selector](docs/images/captcha-zh-CN.jpg)](docs/images/captcha-zh-CN.jpg) |
 
-Actual browser captures of v0.1.1 on Keycloak 26.7.0, using a demo realm and a
+Actual browser captures of v0.1.2 on Keycloak 26.7.0, using a demo realm and a
 customized [Keycloakify shadcn theme](https://github.com/Oussemasahbeni/keycloakify-shadcn-starter).
 This optional theme supplies the card, colors, and mode switch; it is distributed
 separately. The provider also includes a default FreeMarker page. See the

@@ -4,11 +4,21 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-22
+
 ### Fixed
 
 - Follow the selected Keycloak language in Tencent's popup, with explicit SDK language mapping and English fallback.
 - Provide an optional shadcn adapter with English and Simplified Chinese CAPTCHA text, including server-rendered errors, and document enabling the language menu.
+- Keep the page title, home link, and theme controls in the selected language.
+- Add an optional shadcn registration adapter that hides non-required profile fields before form validation while preserving fields required by Keycloak.
+- Document and configure a separate registration flow with a top-level `REQUIRED` server-verified CAPTCHA step, including direct registration.
+
+### Added
+
 - Exercise language switching and locale retention through server-verified login and direct registration in the disposable TLS integration suite.
+- Cover missing, forged, disaster, and replayed CAPTCHA proofs, authentication-flow tampering, and successful registration with a signed-request TLS fixture.
+- Refresh the English and Chinese README previews with actual v0.1.2 browser captures and visible language selection.
 
 ## [0.1.1] - 2026-10-21
 
@@ -44,6 +54,7 @@ All notable changes to this project are documented here. The format is based on 
 - Public security, contribution, issue, and pull-request policies for the Apache-2.0 project.
 - Separately attributed Contributor Covenant 2.1 conduct policy under CC BY 4.0.
 
-[Unreleased]: https://github.com/invoker-bot/keycloak-tencent-captcha-authenticator/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/invoker-bot/keycloak-tencent-captcha-authenticator/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/invoker-bot/keycloak-tencent-captcha-authenticator/releases/tag/v0.1.2
 [0.1.1]: https://github.com/invoker-bot/keycloak-tencent-captcha-authenticator/releases/tag/v0.1.1
 [0.1.0]: https://github.com/invoker-bot/keycloak-tencent-captcha-authenticator/releases/tag/v0.1.0
