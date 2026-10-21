@@ -127,7 +127,9 @@ docker compose -f examples/docker-compose/compose.yaml up --build --detach
 
 内置 **SSO Cookie** execution 位于 Forms 之前，因此已有有效 SSO cookie 的会话会绕过新的验证码。这是有意行为。Registration（注册）、password reset（密码重置）、action-token、broker 和 direct grant 并不会自动受到保护；如这些入口也需要验证码，应分别设计控制。Direct grant 没有浏览器页面，不能使用此 execution。
 
-简言之：registration、reset 与 direct grant 均不在这个 Browser Flow 的自动覆盖范围内。
+开放自助注册时，还需配置[带必需验证码的 Registration Flow](docs/authentication-flow.md#registration-flow)。
+这样直接注册链接和直接提交注册表单也必须先通过服务端验证。
+可选的 [Keycloakify shadcn 适配器](examples/keycloakify/README.md) 会隐藏 Keycloak 未标记为必填的注册资料字段。
 
 详见[认证流程指南](docs/authentication-flow.md)。
 

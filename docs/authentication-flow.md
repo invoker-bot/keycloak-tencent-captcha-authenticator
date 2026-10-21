@@ -49,6 +49,37 @@ The following paths are not automatically covered:
 
 If one of these entry points needs anti-automation controls, configure a suitable independent flow or control and test it. Do not assume binding this Browser Flow changes registration, reset, or direct grant.
 
+## Registration Flow
+
+Self-registration uses its own flow. Copy the realm's current **Registration**
+flow, add **Tencent CAPTCHA** at the top level, set it to `REQUIRED`, and move it
+before **Registration Form**. Keep Registration Form and its existing child
+actions unchanged, then bind the copy under **Registration Flow**.
+
+```text
+Copied Registration Flow
+├── Tencent CAPTCHA [tencent-captcha] (REQUIRED)
+└── Registration Form (REQUIRED)
+    └── Existing profile, password, terms and user creation actions
+```
+
+The same server verifier runs before the form, including when visitors open the
+OIDC `/registrations` endpoint directly. The CAPTCHA page must submit to the
+supplied `url.loginAction`, which now points to `/login-actions/registration`.
+Do not hard-code the Browser Flow action URL or add this Authenticator as a
+Registration Form Action; these are different Keycloak provider interfaces.
+
+`tests/integration/run_registration.py` tests the production JAR in Keycloak
+26.7.0 against a disposable TLS Tencent API fixture. It checks signed outbound
+requests, missing/forged/disaster proofs, tampered execution IDs, successful user
+creation after an accepted server response, and an upstream-rejected replay.
+The fixture DNS and TLS truststore exist only on the isolated test network.
+No fixture endpoint or success override is included in the shipped provider.
+
+Optional registration fields are a theme decision, independent of this server
+gate. The [shadcn adapter](../examples/keycloakify/README.md) hides fields whose
+server-resolved `required` flag is false before rendering and form validation.
+
 ## Template override contract
 
 The built-in `tencent-captcha.ftl` works with Keycloak's active login theme and is the supported default. A realm login theme may override the same template while preserving:
@@ -63,6 +94,6 @@ Do not expose `CAPTCHA_APP_SECRET_KEY`, `TENCENT_SECRET_ID`, or `TENCENT_SECRET_
 
 ## Rollout and rollback
 
-Before binding, record the previous Browser Flow name. Roll out to a test realm or maintenance window, validate a fresh login and an SSO Cookie login, then bind additional realms.
+Before binding, record the previous Browser and Registration Flow names. Roll out to a test realm or maintenance window, validate login and registration, then bind additional realms.
 
-To roll back flow configuration, bind the previous Browser Flow first. Only after no bound flow references `tencent-captcha` should the provider JAR be removed and Keycloak rebuilt. See [README lifecycle steps](../README.md#upgrade-rollback-and-uninstall).
+To roll back flow configuration, restore the previous bindings first. Only after no bound flow references `tencent-captcha` should the provider JAR be removed and Keycloak rebuilt. See [README lifecycle steps](../README.md#upgrade-rollback-and-uninstall).
