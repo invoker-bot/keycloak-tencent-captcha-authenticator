@@ -141,7 +141,10 @@ In the Keycloak Admin Console for each protected realm:
 
 The built-in **SSO Cookie** execution precedes Forms. A valid SSO cookie therefore bypasses a fresh CAPTCHA. This is intentional. Registration, password reset, action-token flows, broker flows, and direct grant are not automatically protected; add separately designed controls if those entry points require CAPTCHA. Direct grant has no browser page and cannot use this execution.
 
-In short: registration, reset, and direct grant remain outside this Browser Flow unless separately protected.
+For self-registration, also configure a [Registration Flow with required CAPTCHA](docs/authentication-flow.md#registration-flow).
+This protects direct registration links and rejects form submissions without server-accepted proof.
+The optional [Keycloakify shadcn adapter](examples/keycloakify/README.md) hides registration
+profile fields unless Keycloak marks them required.
 
 See [authentication-flow guidance](docs/authentication-flow.md).
 

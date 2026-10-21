@@ -81,6 +81,9 @@ jobs:
       - name: Build and smoke-test the public Docker Compose example
         run: python3 tests/integration/run_public_example.py
 
+      - name: Verify mandatory registration CAPTCHA against a TLS API fixture
+        run: python3 tests/integration/run_registration.py
+
       - name: Run release-script unit tests
         run: python3 -m unittest discover -s scripts/tests
 
