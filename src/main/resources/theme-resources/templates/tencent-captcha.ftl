@@ -16,6 +16,7 @@
                 nonce="${cspNonce}"
                 src="${url.resourcesPath}/js/tencent-captcha-client.js"
                 data-app-id="${captchaAppId}"
+            data-language-tag="${captchaLanguage}"
                 data-aid-encrypted="${aidEncrypted}"
                 data-script-url="${captchaScriptUrl}"
                 data-csp-nonce="${cspNonce}"

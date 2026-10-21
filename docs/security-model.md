@@ -4,7 +4,7 @@ This document describes the `0.1.x` trust boundaries and fail-closed behavior. I
 
 ## Trust boundaries and privacy data flow
 
-1. Keycloak renders the bundled `tencent-captcha.ftl` challenge with the public `CaptchaAppId`, a fresh 300-second `aidEncrypted`, a fresh 16-byte-derived CSP nonce, the local client-module URL, and the exact Tencent script URL.
+1. Keycloak renders the bundled `tencent-captcha.ftl` challenge with the public `CaptchaAppId`, a fresh 300-second `aidEncrypted`, a fresh 16-byte-derived CSP nonce, the resolved Keycloak locale, the local client-module URL, and the exact Tencent script URL. The client converts that locale into Tencent's `userLanguage`; this display option does not change server verification.
 2. The user's browser loads and executes the entry script `https://turing.captcha.qcloud.com/TJCaptcha.js` from Tencent; that provider script may load dynamic scripts from the exact origin `https://turing.captcha.gtimg.com`.
 3. On Tencent callback success, the local module posts only `ticket` and `randstr` to Keycloak's exact `url.loginAction`.
 4. Keycloak obtains the client IP from its connection context and sends `Ticket`, `Randstr`, `UserIp`, `CaptchaAppId`, `AppSecretKey`, and `CaptchaType=9` in the HTTPS request body to `https://captcha.tencentcloudapi.com` using `DescribeCaptchaResult` API version `2019-07-22`.

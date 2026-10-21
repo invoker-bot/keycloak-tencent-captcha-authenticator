@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -44,6 +45,7 @@ import org.keycloak.headers.SecurityHeadersOptions;
 import org.keycloak.headers.SecurityHeadersProvider;
 import org.keycloak.http.HttpRequest;
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.KeycloakContext;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.sessions.AuthenticationSessionModel;
@@ -64,6 +66,7 @@ class TencentCaptchaAuthenticatorTest {
     private UserModel user;
     private SecurityHeadersOptions securityHeadersOptions;
     private Response captchaResponse;
+    private KeycloakContext keycloakContext;
 
     @BeforeEach
     void setUp() {
@@ -73,6 +76,9 @@ class TencentCaptchaAuthenticatorTest {
         user = mock(UserModel.class);
         RealmModel realm = mock(RealmModel.class);
         KeycloakSession keycloakSession = mock(KeycloakSession.class);
+        keycloakContext = mock(KeycloakContext.class);
+        when(keycloakSession.getContext()).thenReturn(keycloakContext);
+        when(keycloakContext.resolveLocale(user)).thenReturn(Locale.ENGLISH);
         SecurityHeadersProvider securityHeadersProvider = mock(SecurityHeadersProvider.class);
         securityHeadersOptions = mock(SecurityHeadersOptions.class);
         captchaResponse = Response.ok("captcha").type("text/html").build();
@@ -106,6 +112,16 @@ class TencentCaptchaAuthenticatorTest {
     }
 
     @Test
+    void challengeUsesTheResolvedKeycloakLocaleIncludingAnonymousRegistration() {
+        when(context.getUser()).thenReturn(null);
+        when(keycloakContext.resolveLocale(null)).thenReturn(Locale.SIMPLIFIED_CHINESE);
+
+        authenticator(() -> SECRETS, acceptedVerifier()).authenticate(context);
+
+        verify(form).setAttribute("captchaLanguage", "zh-CN");
+    }
+
+    @Test
     void challengeCarriesPublicAttributesAndRequestScopedSecurityHeaders() {
         TencentCaptchaAuthenticator authenticator = authenticator(() -> SECRETS, acceptedVerifier());
 
@@ -115,6 +131,7 @@ class TencentCaptchaAuthenticatorTest {
         verify(form).setAttribute("aidEncrypted", AidEncryptedGenerator.generate("123456789", "app-secret",
                 clock.instant(), Duration.ofSeconds(300), new byte[16]));
         verify(form).setAttribute("captchaScriptUrl", SCRIPT_URL);
+        verify(form).setAttribute("captchaLanguage", "en");
         ArgumentCaptor<String> nonce = ArgumentCaptor.forClass(String.class);
         verify(form).setAttribute(eq("cspNonce"), nonce.capture());
         assertTrue(nonce.getValue().matches("[A-Za-z0-9_-]{22}"));
