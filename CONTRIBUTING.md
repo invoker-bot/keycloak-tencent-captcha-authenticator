@@ -64,6 +64,14 @@ Before submitting, run `git diff --check` and scan public files for unfinished m
 
 Pull requests and pushes to `main` run the same Java, Node.js, fresh-Keycloak acceptance, CodeQL, and full-history Gitleaks gates. GitHub Actions are pinned to reviewed immutable commit SHAs; do not replace them with floating tags. The secret scan installs a fixed Gitleaks CLI release only after verifying its reviewed official SHA-256, then explicitly scans `git --log-opts=--all`; do not replace it with an action's implicit scan range. Pull-request workflows keep top-level permissions read-only, the CodeQL PR job grants only `contents: read` and `security-events: write` so it can upload results, and this project never uses `pull_request_target`.
 
+Keep every CodeQL action step on the same revision. Dependabot groups the CodeQL
+actions into one update, and `WorkflowPolicyTest` rejects mixed revisions before
+they can break analysis. Branch protection requires `Java, browser, and container
+acceptance`, `Analyze PR (java)`, `Analyze PR (javascript)`, and `Gitleaks
+full-history scan`, with branches up to date before merging. The `Analyze trusted
+ref` jobs run only after a push or on the schedule and must not be required PR
+checks.
+
 To test the release asset contract without creating a tag or remote release, run:
 
 ```bash
