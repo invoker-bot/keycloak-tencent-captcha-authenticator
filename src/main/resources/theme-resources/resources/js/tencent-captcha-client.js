@@ -45,7 +45,7 @@ export function loadTencentCaptcha(scriptUrl, cspNonce, document, window) {
     return promise;
 }
 
-export async function solveCaptcha({appId, aidEncrypted, scriptUrl, cspNonce, document, window}) {
+export async function solveCaptcha({appId, aidEncrypted, scriptUrl, cspNonce, document, window, reportError}) {
     const TencentCaptcha = await loadTencentCaptcha(scriptUrl, cspNonce, document, window);
 
     return new Promise((resolve, reject) => {
@@ -59,7 +59,19 @@ export async function solveCaptcha({appId, aidEncrypted, scriptUrl, cspNonce, do
             }
             const ticket = typeof result.ticket === "string" ? result.ticket.trim() : "";
             const randstr = typeof result.randstr === "string" ? result.randstr.trim() : "";
-            if (ticket === "" || randstr === "" || ticket.startsWith("trerror_")) {
+            if (ticket.startsWith("trerror_")) {
+                if (typeof reportError === "function") {
+                    const errorCode = Number.isInteger(result.errorCode) ? result.errorCode : null;
+                    try {
+                        reportError({category: "disaster-ticket", errorCode});
+                    } catch {
+                        // Diagnostics must not alter fail-closed CAPTCHA handling.
+                    }
+                }
+                reject(captchaError("captcha-invalid-proof"));
+                return;
+            }
+            if (ticket === "" || randstr === "") {
                 reject(captchaError("captcha-invalid-proof"));
                 return;
             }
@@ -130,7 +142,13 @@ export function bootstrapTencentCaptcha(document, window) {
         cspNonce: root.dataset.cspNonce,
         loginAction: root.dataset.loginAction,
         document,
-        window
+        window,
+        reportError: typeof window.console?.warn === "function"
+            ? diagnostic => window.console.warn(
+                "tencent-captcha-diagnostic",
+                JSON.stringify(diagnostic)
+            )
+            : undefined
     });
 
     button.addEventListener("click", async () => {

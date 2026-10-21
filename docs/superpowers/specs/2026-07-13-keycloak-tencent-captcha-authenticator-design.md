@@ -80,7 +80,7 @@ The factory and Keycloak startup do not read the secret file. A missing or inval
 
 ## Browser challenge
 
-The template renders an accessible CAPTCHA action using the active Keycloak login theme's common layout and messages. It loads exactly `https://turing.captcha.qcloud.com/TJCaptcha.js` and rejects every other script URL. It does not vendor Tencent's script.
+The template renders an accessible CAPTCHA action using the active Keycloak login theme's common layout and messages. It loads exactly the entry script `https://turing.captcha.qcloud.com/TJCaptcha.js` and rejects every other entry-script URL. Tencent's provider script may load dynamic scripts from the exact origin `https://turing.captcha.gtimg.com`; the extension does not vendor Tencent's scripts.
 
 Each challenge creates:
 
@@ -98,11 +98,11 @@ Each challenge creates:
 
 Tests include fixed plaintext/key/IV/output vectors and reject invalid IV or TTL values.
 
-The client script submits only to the exact Keycloak `url.loginAction`. It submits `ticket` and `randstr` only after the Tencent callback reports success. Closing the CAPTCHA, receiving an empty result, script load failure, duplicate activation, or a `trerror_*` result does not submit a proof.
+The client script submits only to the exact Keycloak `url.loginAction`. It submits `ticket` and `randstr` only after the Tencent callback reports success. Closing the CAPTCHA, receiving an empty result, script load failure, duplicate activation, or a `trerror_*` result does not submit a proof. For a `trerror_*` result, an optional diagnostic contains exactly the fixed `disaster-ticket` category and an integral numeric `errorCode` or `null`; it never contains proof fields or provider messages, and diagnostic failure cannot bypass rejection.
 
 ## Content Security Policy
 
-The authenticator modifies CSP only on its own challenge response. It copies the realm browser security headers, adds a request-scoped nonce, and adds only `https://turing.captcha.qcloud.com` to `script-src`, `frame-src`, and `connect-src`. It rejects policies that require wildcard sources, `unsafe-eval`, or new `unsafe-inline` behavior.
+The authenticator modifies CSP only on its own challenge response. It copies the realm browser security headers, adds a request-scoped nonce, and adds `https://turing.captcha.qcloud.com` to `script-src`, `frame-src`, and `connect-src`. It also adds the exact script-only origin `https://turing.captcha.gtimg.com` to `script-src`, never to `frame-src` or `connect-src`. The derived challenge policy adds `'self'` and `blob:` to `worker-src` so Tencent can create its blob-backed worker; when the directive is absent this yields exactly `worker-src 'self' blob:`, and when it exists its sources are preserved. If the realm policy defines neither `script-src` nor `default-src`, the derived `script-src` adds `'self'` so the active same-origin login-theme module graph remains executable; explicit directives remain authoritative. It rejects policies that require wildcard sources, `unsafe-eval`, or new `unsafe-inline` behavior.
 
 The provider must not mutate the realm-wide CSP. The implementation copies all realm browser headers onto the challenge response, sets the challenge CSP, and invokes Keycloak's request-scoped `SecurityHeadersProvider.options().skipHeaders()` only while building that response so the response filter cannot overwrite it. It retains no cross-request state. Ordinary login, registration, error, master-realm, and account-console pages must preserve their original realm headers byte-for-byte.
 
@@ -230,7 +230,7 @@ Container acceptance tests use a fresh Keycloak `26.7.0` image and prove:
 - The embedded template renders without another theme artifact.
 - A copied flow can add the execution as `REQUIRED`.
 - Missing and invalid secrets reject the protected flow without preventing Keycloak readiness.
-- The final challenge has the expected CSP nonce and only the allowed Tencent origin.
+- The final challenge has the expected CSP nonce, both exact Tencent script origins in `script-src`, no `https://turing.captcha.gtimg.com` source in `frame-src` or `connect-src`, and request-scoped `worker-src 'self' blob:` when the realm policy has no worker directive.
 - The final HTML references exactly `https://turing.captcha.qcloud.com/TJCaptcha.js` and passes only `aidEncrypted` to its constructor options.
 - Ordinary login, registration, error, master-realm, and account-console responses retain the same browser security headers before and after the CAPTCHA challenge.
 - The Docker Compose example starts on Linux with a host bind-mounted secret whose owner is Keycloak UID `1000`, whose parent is mode `0700`, and whose file mode is `0400` or `0600`.

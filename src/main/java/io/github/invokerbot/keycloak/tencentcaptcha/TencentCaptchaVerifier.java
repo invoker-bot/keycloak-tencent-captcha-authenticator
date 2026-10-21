@@ -96,7 +96,8 @@ final class TencentCaptchaVerifier {
             return rejected("invalid-response", null);
         }
         if (responseNode.hasNonNull("Error")) {
-            return rejected("api-error", null);
+            return new CaptchaVerificationResult(false, "api-error", null,
+                    responseNode.path("Error").path("Code").asText(null), responseNode.path("RequestId").asText(null));
         }
 
         JsonNode codeNode = responseNode.get("CaptchaCode");
@@ -105,7 +106,8 @@ final class TencentCaptchaVerifier {
         }
         int code = codeNode.intValue();
         if (code != 1) {
-            return rejected("captcha-rejected", code);
+            return new CaptchaVerificationResult(false, "captcha-rejected", code, null,
+                    responseNode.path("RequestId").asText(null));
         }
         return new CaptchaVerificationResult(true, "accepted", code);
     }
