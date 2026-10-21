@@ -90,6 +90,11 @@ The built-in `tencent-captcha.ftl` works with Keycloak's active login theme and 
 - the exact Tencent script URL supplied by `captchaScriptUrl`;
 - accessible button/status behavior and generic localized error messages.
 
+The bundled module URL includes `?v=${captchaClientVersion}`, the SHA-256 digest
+of its packaged content, so browser caches refresh after a provider upgrade.
+Custom templates that load this module should preserve that version parameter;
+bundled React themes can use their build-generated asset hashes.
+
 Start once automatically only when `captchaAutoStart` is `true`. The server sets
 it to `false` after rejection so a risk denial cannot cause an automatic POST
 loop. Keep a manual retry for cancellation and errors, and deduplicate activation
