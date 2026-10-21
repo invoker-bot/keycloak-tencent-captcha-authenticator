@@ -4,6 +4,11 @@
 
 An unofficial Keycloak authenticator that adds Tencent Cloud CAPTCHA as a standalone `REQUIRED` Browser Flow execution. It is delivered as one thin provider JAR and does not depend on a specific application, secret store, deployment platform, or third-party login theme.
 
+Optional [Sentry diagnostics](docs/configuration.md#optional-sentry-diagnostics)
+report CAPTCHA server failures, including invalid Tencent API credentials. Fill
+`SENTRY_DSN` in the ignored root `.env` before `task build` (or `./mvnw -B verify`); no DSN is
+hardcoded. Runtime Sentry environment variables override build defaults.
+
 This is not an official Tencent, Tencent Cloud, or Keycloak project. Tencent and Tencent Cloud names and marks belong to Tencent; Keycloak names and marks belong to their respective owners.
 
 ## Compatibility and release identity
@@ -25,20 +30,34 @@ The supported baseline is Keycloak 26.7.0 on Java 21.
 
 1. In the Tencent Cloud CAPTCHA console, create or select a Web/App CAPTCHA application and obtain its `CaptchaAppId` and `AppSecretKey`.
 2. Create a Tencent Cloud API identity for server-side verification. Grant only the CAM action `captcha:DescribeCaptchaResult` where your account's CAPTCHA authorization model permits it; do not grant broad administrator credentials. See Tencent Cloud's [CAM policy syntax](https://cloud.tencent.com/document/product/598/10603) and CAPTCHA product authorization documentation for your account.
-3. Ensure the Keycloak host can resolve and reach `turing.captcha.qcloud.com` from browsers and `captcha.tencentcloudapi.com` from the server. Tencent documents that these names use dynamic IP addresses, so allow by hostname rather than pinning IP addresses.
+3. Ensure browsers can resolve and reach `turing.captcha.qcloud.com` and the script-only origin `turing.captcha.gtimg.com`, and that the Keycloak server can resolve and reach `captcha.tencentcloudapi.com`. Tencent documents that these names use dynamic IP addresses, so allow by hostname rather than pinning IP addresses.
 4. Configure Keycloak proxy headers and trusted proxy addresses correctly. The provider sends the address exposed by Keycloak's connection context as `UserIp`; without a trusted-proxy configuration, Tencent may receive the reverse proxy IP instead of the browser client IP.
 
 Tencent references: [TJCaptcha/Web integration](https://cloud.tencent.com/document/product/1110/36828), [`DescribeCaptchaResult`](https://cloud.tencent.com/document/api/1110/36926), and [`aidEncrypted` authentication](https://cloud.tencent.com/document/product/1110/128489).
 
 ## Build
 
-Use Java 21 or newer to build the Java 21 artifact:
+Use Java 21 or newer and [Task v3](https://taskfile.dev/docs/installation)
+to build the Java 21 artifact:
 
 ```bash
-./mvnw -B verify
+task build
 ```
 
-The release JAR is `target/keycloak-tencent-captcha-authenticator-0.1.0.jar`.
+This runs `./mvnw -B verify`, including Java tests and formatting checks. The
+release JAR is `target/keycloak-tencent-captcha-authenticator-0.1.0.jar`.
+
+| Command | Purpose |
+| --- | --- |
+| `task test` | Run Java, browser-script, and Python unit tests |
+| `task verify` | Build the provider and run all local checks |
+| `task test:integration` | Build and run both container acceptance suites on Linux with Docker Compose |
+| `task artifacts` | Verify the project and generate the JAR, checksums, and SBOM in ignored `dist/` |
+| `task --list` | List all tasks, including individual test suites, formatting, and cleanup |
+
+Artifact versions come from `pom.xml`. See [Contributing](CONTRIBUTING.md) for
+prerequisites and the underlying commands. Sentry build defaults still come from
+`.env`; build artifacts intended for public distribution without that local file.
 
 ## JAR installation
 
@@ -111,11 +130,11 @@ See [authentication-flow guidance](docs/authentication-flow.md).
 
 ## Runtime and security behavior
 
-- The browser loads exactly `https://turing.captcha.qcloud.com/TJCaptcha.js`. The challenge submits only `ticket` and `randstr` to Keycloak's exact `url.loginAction`.
+- The browser loads the exact entry script `https://turing.captcha.qcloud.com/TJCaptcha.js`; that provider script may load dynamic scripts from the exact origin `https://turing.captcha.gtimg.com`. The challenge submits only `ticket` and `randstr` to Keycloak's exact `url.loginAction`.
 - The server sends `Ticket`, `Randstr`, `UserIp`, `CaptchaAppId`, `AppSecretKey`, and fixed `CaptchaType=9` to `https://captcha.tencentcloudapi.com` with action `DescribeCaptchaResult`, API version `2019-07-22`.
 - `TENCENT_SECRET_ID` is transmitted in the TC3 `Authorization` header as the `Credential=` identifier, followed by its credential scope. `TENCENT_SECRET_KEY` is used only by the local HMAC key-derivation and request-signing chain and is never transmitted.
-- Verification succeeds only for an integral `CaptchaCode == 1`. Missing configuration, invalid input, `trerror_*`, timeouts, transport errors, non-2xx responses, API errors, malformed responses, and every other code are fail-closed. There is no fail-open option and no automatic proof retry.
-- On only the CAPTCHA response, the provider preserves the realm browser security headers, adds a fresh nonce to `script-src`, and adds only `https://turing.captcha.qcloud.com` to `script-src`, `frame-src`, and `connect-src`. A policy containing `*`, `'unsafe-inline'`, `'unsafe-eval'`, or duplicate directives is rejected rather than weakened. Realm-wide CSP is not mutated.
+- Verification succeeds only for an integral `CaptchaCode == 1`. Missing configuration, invalid input, `trerror_*`, timeouts, transport errors, non-2xx responses, API errors, malformed responses, and every other code are fail-closed. There is no fail-open option and no automatic proof retry. The browser rejects a `trerror_*` disaster ticket before submission; its optional diagnostic contains only `category: "disaster-ticket"` and an integral numeric `errorCode` (or `null`), never `ticket`, `randstr`, or `errorMessage`.
+- On only the CAPTCHA response, the provider preserves the realm browser security headers and adds a fresh nonce to `script-src`. It adds `https://turing.captcha.qcloud.com` to `script-src`, `frame-src`, and `connect-src`, while the script-only origin `https://turing.captcha.gtimg.com` is added exclusively to `script-src`. The derived challenge policy adds `worker-src 'self' blob:` when that directive is absent; if it already exists, its sources are preserved and only `'self'` and `blob:` are added so the Tencent challenge can create its blob-backed worker. When both `script-src` and `default-src` are absent, the derived directive also adds `'self'` so same-origin login-theme modules remain loadable; an explicit `script-src` or `default-src` remains authoritative. A policy containing `*`, `'unsafe-inline'`, `'unsafe-eval'`, or duplicate directives is rejected rather than weakened. Realm-wide CSP is not mutated.
 
 Privacy disclosure: the user's browser loads and executes Tencent-hosted code. The Keycloak server sends CAPTCHA proof fields and the client IP to Tencent for verification. Review Tencent Cloud's terms, privacy documentation, retention, and regional processing for your deployment, and update your own user-facing privacy notice before enabling the flow.
 

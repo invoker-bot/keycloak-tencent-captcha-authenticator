@@ -20,6 +20,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
+import java.util.function.BiConsumer;
 import org.keycloak.authentication.AuthenticationFlowContext;
 import org.keycloak.authentication.AuthenticationFlowError;
 import org.keycloak.authentication.Authenticator;
@@ -43,6 +44,7 @@ public final class TencentCaptchaAuthenticator implements Authenticator {
     private static final int RANDOM_VALUE_LENGTH = 16;
     private static final int CORRELATION_HEX_LENGTH = 16;
     private static final String CAPTCHA_ORIGIN = "https://turing.captcha.qcloud.com";
+    private static final String CAPTCHA_DYNAMIC_SCRIPT_ORIGIN = "https://turing.captcha.gtimg.com";
 
     private final SecretSource secretSource;
     private final CaptchaVerifierFactory verifierFactory;
@@ -50,24 +52,34 @@ public final class TencentCaptchaAuthenticator implements Authenticator {
     private final Clock clock;
     private final SecureRandom secureRandom;
     private final VerificationBulkhead verificationBulkhead;
+    private final BiConsumer<CaptchaVerificationResult, String> diagnostics;
 
     TencentCaptchaAuthenticator(SecretSource secretSource, CaptchaVerifierFactory verifierFactory,
             Supplier<HttpClient> httpClientSupplier, Clock clock, SecureRandom secureRandom,
             VerificationBulkhead verificationBulkhead) {
+        this(secretSource, verifierFactory, httpClientSupplier, clock, secureRandom, verificationBulkhead,
+                (result, correlation) -> {
+                });
+    }
+
+    TencentCaptchaAuthenticator(SecretSource secretSource, CaptchaVerifierFactory verifierFactory,
+            Supplier<HttpClient> httpClientSupplier, Clock clock, SecureRandom secureRandom,
+            VerificationBulkhead verificationBulkhead, BiConsumer<CaptchaVerificationResult, String> diagnostics) {
         this.secretSource = Objects.requireNonNull(secretSource, "secret-source-missing");
         this.verifierFactory = Objects.requireNonNull(verifierFactory, "verifier-factory-missing");
         this.httpClientSupplier = Objects.requireNonNull(httpClientSupplier, "http-client-supplier-missing");
         this.clock = Objects.requireNonNull(clock, "clock-missing");
         this.secureRandom = Objects.requireNonNull(secureRandom, "secure-random-missing");
         this.verificationBulkhead = Objects.requireNonNull(verificationBulkhead, "verification-bulkhead-missing");
+        this.diagnostics = Objects.requireNonNull(diagnostics, "diagnostics-missing");
     }
 
     static TencentCaptchaAuthenticator createDefault(SecretSource secretSource) {
         Clock clock = Clock.systemUTC();
         return new TencentCaptchaAuthenticator(secretSource,
                 (secrets, client) -> new TencentCaptchaVerifier(secrets, client, clock)::verify,
-                TencentCaptchaAuthenticator::sharedHttpClient, clock, new SecureRandom(),
-                VerificationBulkhead.shared());
+                TencentCaptchaAuthenticator::sharedHttpClient, clock, new SecureRandom(), VerificationBulkhead.shared(),
+                SentryReporter::capture);
     }
 
     static HttpClient sharedHttpClient() {
@@ -134,6 +146,7 @@ public final class TencentCaptchaAuthenticator implements Authenticator {
         }
 
         logResult(context, result);
+        report(context, result);
         if (result.accepted()) {
             context.success();
             return;
@@ -232,11 +245,15 @@ public final class TencentCaptchaAuthenticator implements Authenticator {
             }
             directives.put(normalized, new Directive(tokens[0], sources));
         }
-        mergeDirective(directives, "script-src", inheritedSources(directives, "default-src"),
-                List.of("'nonce-" + nonce + "'", CAPTCHA_ORIGIN));
+        List<String> scriptFallback = directives.containsKey("default-src")
+                ? inheritedSources(directives, "default-src")
+                : List.of("'self'");
+        mergeDirective(directives, "script-src", scriptFallback,
+                List.of("'nonce-" + nonce + "'", CAPTCHA_ORIGIN, CAPTCHA_DYNAMIC_SCRIPT_ORIGIN));
         mergeDirective(directives, "frame-src", inheritedSources(directives, "child-src", "default-src"),
                 List.of(CAPTCHA_ORIGIN));
         mergeDirective(directives, "connect-src", inheritedSources(directives, "default-src"), List.of(CAPTCHA_ORIGIN));
+        mergeDirective(directives, "worker-src", List.of(), List.of("'self'", "blob:"));
         return directives.values().stream()
                 .map(directive -> (directive.name() + " " + String.join(" ", directive.sources())).strip())
                 .reduce((left, right) -> left + "; " + right).orElseThrow();
@@ -267,9 +284,10 @@ public final class TencentCaptchaAuthenticator implements Authenticator {
     private record Directive(String name, List<String> sources) {
     }
 
-    private static void configUnavailable(AuthenticationFlowContext context) {
+    private void configUnavailable(AuthenticationFlowContext context) {
         LOGGER.log(System.Logger.Level.ERROR,
                 "event=tencent-captcha result=captcha-config-unavailable correlation=" + correlation(context));
+        report(context, new CaptchaVerificationResult(false, "captcha-config-unavailable", null));
         Response response = context.form().setError("captchaConfigUnavailable")
                 .createErrorPage(Response.Status.SERVICE_UNAVAILABLE);
         context.failureChallenge(AuthenticationFlowError.INTERNAL_ERROR, response);
@@ -281,8 +299,23 @@ public final class TencentCaptchaAuthenticator implements Authenticator {
         if (result.code() != null) {
             message.append(" code=").append(result.code());
         }
+        if (result.apiErrorCode() != null)
+            message.append(" apiErrorCode=").append(result.apiErrorCode());
+        if (result.requestId() != null)
+            message.append(" requestId=").append(result.requestId());
         message.append(" correlation=").append(correlation(context));
         LOGGER.log(resultLogLevel(result), message.toString());
+    }
+
+    private void report(AuthenticationFlowContext context, CaptchaVerificationResult result) {
+        if (result.accepted())
+            return;
+        try {
+            diagnostics.accept(result, correlation(context));
+        } catch (RuntimeException exception) {
+            // Telemetry failure must never change the authentication outcome.
+            LOGGER.log(System.Logger.Level.WARNING, "event=tencent-captcha-sentry result=reporting-failed");
+        }
     }
 
     static System.Logger.Level resultLogLevel(CaptchaVerificationResult result) {
