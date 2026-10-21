@@ -51,6 +51,9 @@ jobs:
       - name: Run browser tests
         run: npm test
 
+      - name: Test the integration harness
+        run: python3 -m unittest discover -s tests/integration -p 'test_*.py'
+
       - name: Verify Java and build the provider
         run: ./mvnw -B verify
 

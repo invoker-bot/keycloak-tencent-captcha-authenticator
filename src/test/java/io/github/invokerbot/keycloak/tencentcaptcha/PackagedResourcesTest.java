@@ -8,6 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.keycloak.common.util.MimeTypeUtil;
@@ -23,6 +26,14 @@ class PackagedResourcesTest {
         for (String resource : RESOURCES) {
             assertJarResource(resource);
         }
+    }
+
+    @Test
+    void embedsContentAddressedModuleToAvoidStaleKeycloakGzipCache() throws IOException, GeneralSecurityException {
+        String source = read("theme-resources/resources/js/tencent-captcha-client.js");
+        String version = HexFormat.of()
+                .formatHex(MessageDigest.getInstance("SHA-256").digest(source.getBytes(StandardCharsets.UTF_8)));
+        assertEquals(source, read("theme-resources/resources/js/tencent-captcha-client-" + version + ".js"));
     }
 
     @Test
@@ -59,7 +70,7 @@ class PackagedResourcesTest {
         assertTrue(template.contains("${url.resourcesPath}/css/tencent-captcha.css"));
         assertTrue(Pattern.compile("(?s)<script(?=[^>]*id=\"tencent-captcha-client\")"
                 + "(?=[^>]*type=\"module\")(?=[^>]*nonce=\"\\$\\{cspNonce}\")"
-                + "(?=[^>]*src=\"\\$\\{url\\.resourcesPath}/js/tencent-captcha-client\\.js\\?v=\\$\\{captchaClientVersion}\")"
+                + "(?=[^>]*src=\"\\$\\{url\\.resourcesPath}/js/tencent-captcha-client-\\$\\{captchaClientVersion}\\.js\")"
                 + "[^>]*>\\s*</script>").matcher(template).find());
         assertTrue(template.contains("data-app-id=\"${captchaAppId}\""));
         assertTrue(template.contains("data-aid-encrypted=\"${aidEncrypted}\""));

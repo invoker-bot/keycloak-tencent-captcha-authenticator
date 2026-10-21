@@ -161,6 +161,7 @@ Privacy（隐私）披露：用户浏览器会加载并执行腾讯托管的代�
 任何生命周期变更前，先按已经验证的备份流程导出 Keycloak 配置，保留上一版已验证 JAR，并在 staging 中测试 copied flow。
 
 - **Upgrade（升级）：**停止 Keycloak；用新版已验证 JAR 替换旧版；执行 `/opt/keycloak/bin/kc.sh build`；使用 `--optimized` 启动；确认 provider discovery、CSP 与受保护登录。
+- **升级或回滚时的主题缓存：**如果保留 data 数据卷，在 Keycloak 停止期间清理自动生成的 `data/tmp/kc-gzip-cache` 目录，避免未使用版本化文件名的主题资源保留旧压缩内容。内置验证码模块现已将内容哈希放入文件名，避免这类缓存冲突。重启后同时验证 identity 与 gzip 响应；参见 [Keycloak 主题缓存说明](https://www.keycloak.org/ui-customization/themes)。
 - **Rollback（回滚）：**停止 Keycloak；恢复上一版 JAR；执行 `/opt/keycloak/bin/kc.sh build`；重启并重复 smoke checks。不要混装多个版本。
 - **Uninstall（卸载）：**按以下顺序执行，避免仍在运行的 flow 或容器突然失去必需的 provider/secret：
   1. 先绑定不引用 `tencent-captcha` 的 Browser Flow（或移除 execution），验证一次全新登录，并确认所有 realm binding 都不再引用该 execution。
