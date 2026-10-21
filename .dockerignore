@@ -12,7 +12,7 @@ target
 target/**
 **/target
 **/target/**
-!target/keycloak-tencent-captcha-authenticator-0.1.0.jar
+!target/keycloak-tencent-captcha-authenticator-0.1.1.jar
 
 # Local environment files and runtime secrets; only synthetic templates are build inputs
 .env

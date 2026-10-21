@@ -18,7 +18,7 @@ This is not an official Tencent, Tencent Cloud, or Keycloak project. Tencent and
 | `0.1.x` | `26.7.0` | `21` | Supported and acceptance-tested baseline |
 | Other versions | Other versions | Other versions | Not claimed until the container acceptance suite passes |
 
-Maven coordinate: `io.github.invoker-bot:keycloak-tencent-captcha-authenticator:0.1.0`<br>
+Maven coordinate: `io.github.invoker-bot:keycloak-tencent-captcha-authenticator:0.1.1`<br>
 Java package: `io.github.invokerbot.keycloak.tencentcaptcha`<br>
 Provider ID: `tencent-captcha`
 
@@ -45,7 +45,7 @@ task build
 ```
 
 This runs `./mvnw -B verify`, including Java tests and formatting checks. The
-release JAR is `target/keycloak-tencent-captcha-authenticator-0.1.0.jar`.
+release JAR is `target/keycloak-tencent-captcha-authenticator-0.1.1.jar`.
 
 | Command | Purpose |
 | --- | --- |
@@ -64,8 +64,8 @@ prerequisites and the underlying commands. Sentry build defaults still come from
 Stop Keycloak, copy the release JAR into its provider directory, rebuild the optimized image, and start it again:
 
 ```bash
-install -m 0644 target/keycloak-tencent-captcha-authenticator-0.1.0.jar \
-  /opt/keycloak/providers/keycloak-tencent-captcha-authenticator-0.1.0.jar
+install -m 0644 target/keycloak-tencent-captcha-authenticator-0.1.1.jar \
+  /opt/keycloak/providers/keycloak-tencent-captcha-authenticator-0.1.1.jar
 /opt/keycloak/bin/kc.sh build
 /opt/keycloak/bin/kc.sh start --optimized
 ```

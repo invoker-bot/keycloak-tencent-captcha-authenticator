@@ -19,7 +19,7 @@ from configure_and_verify import AcceptanceError, AcceptanceVerifier
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 COMPOSE_FILE = PROJECT_ROOT / "tests/integration/compose.yaml"
-JAR_FILE = PROJECT_ROOT / "target/keycloak-tencent-captcha-authenticator-0.1.0.jar"
+JAR_FILE = PROJECT_ROOT / "target/keycloak-tencent-captcha-authenticator-0.1.1.jar"
 SECRET_EXAMPLE = PROJECT_ROOT / "tests/integration/secrets/tencent-captcha.env.example"
 WORK_BUDGET_SECONDS = 540
 CLEANUP_BUDGET_SECONDS = 60

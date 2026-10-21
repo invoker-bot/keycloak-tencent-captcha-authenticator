@@ -21,8 +21,8 @@ class DocumentationTest {
             "CONTRIBUTING.md", "CODE_OF_CONDUCT.md", "CHANGELOG.md", ".github/ISSUE_TEMPLATE/bug_report.yml",
             ".github/ISSUE_TEMPLATE/feature_request.yml", ".github/ISSUE_TEMPLATE/config.yml",
             ".github/pull_request_template.md");
-    private static final String GAV = "io.github.invoker-bot:keycloak-tencent-captcha-authenticator:0.1.0";
-    private static final String JAR = "keycloak-tencent-captcha-authenticator-0.1.0.jar";
+    private static final String GAV = "io.github.invoker-bot:keycloak-tencent-captcha-authenticator:0.1.1";
+    private static final String JAR = "keycloak-tencent-captcha-authenticator-0.1.1.jar";
     private static final String SECRET_FILE = "/run/secrets/tencent-captcha.env";
     private static final List<String> SECRET_LINES = List.of("CAPTCHA_APP_ID=<CAPTCHA_APP_ID>",
             "CAPTCHA_APP_SECRET_KEY=<CAPTCHA_APP_SECRET_KEY>", "TENCENT_SECRET_ID=<TENCENT_SECRET_ID>",
