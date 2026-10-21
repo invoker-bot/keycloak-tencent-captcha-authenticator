@@ -82,7 +82,7 @@ final class SentryReporter {
                     .header("Content-Type", "application/x-sentry-envelope")
                     .header("X-Sentry-Auth",
                             "Sentry sentry_version=7,sentry_key=" + configuration.publicKey()
-                                    + ",sentry_client=keycloak-tencent-captcha/0.1.0")
+                                    + ",sentry_client=keycloak-tencent-captcha/0.1.1")
                     .POST(HttpRequest.BodyPublishers.ofString(envelope, StandardCharsets.UTF_8)).build();
             return sender.apply(request).handle((response, error) -> {
                 try {

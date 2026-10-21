@@ -4,16 +4,24 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-21
+
 ### Added
 
 - Optional asynchronous Sentry diagnostics configured through a local `.env` at build time or runtime environment variables, with sampled, bounded events that exclude credentials and proof data.
 - Sanitized Tencent API error codes and request IDs for diagnosing server-side verification failures, including invalid API credentials.
+- Task commands for building, testing, formatting, container acceptance, and release artifact generation.
 
 ### Fixed
 
 - Allow Tencent's exact dynamic-script origin `https://turing.captcha.gtimg.com` in `script-src` without broadening `connect-src` or `frame-src`.
 - Preserve same-origin login-theme module loading by adding `'self'` when the realm policy defines neither `script-src` nor `default-src`, while retaining explicit administrator restrictions.
 - Reject `trerror_*` disaster tickets in the browser and expose only the fixed diagnostic category plus an integral numeric error code or `null`, without proof fields or provider messages.
+- Keep CodeQL initialization and analysis on the same pinned version, with grouped dependency updates and a regression check.
+
+### Changed
+
+- Update reviewed Maven build plugins, JUnit, Mockito, and pinned GitHub Actions, including artifact provenance attestation. The supported runtime remains Keycloak 26.7.0 on Java 21.
 
 ## [0.1.0] - 2026-07-13
 
@@ -30,5 +38,6 @@ All notable changes to this project are documented here. The format is based on 
 - Public security, contribution, issue, and pull-request policies for the Apache-2.0 project.
 - Separately attributed Contributor Covenant 2.1 conduct policy under CC BY 4.0.
 
-[Unreleased]: https://github.com/invoker-bot/keycloak-tencent-captcha-authenticator/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/invoker-bot/keycloak-tencent-captcha-authenticator/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/invoker-bot/keycloak-tencent-captcha-authenticator/releases/tag/v0.1.1
 [0.1.0]: https://github.com/invoker-bot/keycloak-tencent-captcha-authenticator/releases/tag/v0.1.0

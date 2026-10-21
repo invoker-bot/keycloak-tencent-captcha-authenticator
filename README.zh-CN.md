@@ -15,7 +15,7 @@ This is not an official Tencent, Tencent Cloud, or Keycloak project（本项目�
 | `0.1.x` | `26.7.0` | `21` | 已支持并通过验收测试的基线 |
 | 其他版本 | 其他版本 | 其他版本 | 在同一容器验收套件通过前不作兼容承诺 |
 
-Maven 坐标：`io.github.invoker-bot:keycloak-tencent-captcha-authenticator:0.1.0`<br>
+Maven 坐标：`io.github.invoker-bot:keycloak-tencent-captcha-authenticator:0.1.1`<br>
 Java 包：`io.github.invokerbot.keycloak.tencentcaptcha`<br>
 Provider ID：`tencent-captcha`
 
@@ -40,7 +40,7 @@ Maven group 中的 `invoker-bot` 有连字符，Java 包名没有。参见 [`0.1
 task build
 ```
 
-该命令执行 `./mvnw -B verify`，包含 Java 测试和格式检查。发行 JAR 为 `target/keycloak-tencent-captcha-authenticator-0.1.0.jar`。
+该命令执行 `./mvnw -B verify`，包含 Java 测试和格式检查。发行 JAR 为 `target/keycloak-tencent-captcha-authenticator-0.1.1.jar`。
 
 | 命令 | 用途 |
 | --- | --- |
@@ -57,8 +57,8 @@ task build
 停止 Keycloak，将发行 JAR 复制到 provider 目录，重建优化镜像后再启动：
 
 ```bash
-install -m 0644 target/keycloak-tencent-captcha-authenticator-0.1.0.jar \
-  /opt/keycloak/providers/keycloak-tencent-captcha-authenticator-0.1.0.jar
+install -m 0644 target/keycloak-tencent-captcha-authenticator-0.1.1.jar \
+  /opt/keycloak/providers/keycloak-tencent-captcha-authenticator-0.1.1.jar
 /opt/keycloak/bin/kc.sh build
 /opt/keycloak/bin/kc.sh start --optimized
 ```

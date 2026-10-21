@@ -25,7 +25,7 @@ class ExampleFilesTest {
         String compose = read("tests/integration/compose.yaml");
 
         assertTrue(dockerfile.contains("FROM quay.io/keycloak/keycloak:26.7.0"));
-        assertTrue(dockerfile.contains("target/keycloak-tencent-captcha-authenticator-0.1.0.jar"));
+        assertTrue(dockerfile.contains("target/keycloak-tencent-captcha-authenticator-0.1.1.jar"));
         assertTrue(dockerfile.contains("/opt/keycloak/bin/kc.sh build"));
         assertTrue(compose.contains("127.0.0.1:"));
         assertTrue(compose.contains(SECRET_TARGET + ":ro"));
@@ -59,7 +59,7 @@ class ExampleFilesTest {
         assertTrue(rules.contains(".git/**"));
         assertTrue(rules.contains("target"));
         assertTrue(rules.contains("**/target/**"));
-        assertTrue(rules.contains("!target/keycloak-tencent-captcha-authenticator-0.1.0.jar"));
+        assertTrue(rules.contains("!target/keycloak-tencent-captcha-authenticator-0.1.1.jar"));
         assertTrue(rules.contains(".env"));
         assertTrue(rules.contains("**/.env.*"));
         assertTrue(rules.contains("**/secrets/*"));
@@ -67,7 +67,7 @@ class ExampleFilesTest {
         assertTrue(rules.contains("!**/*.env.example"));
         assertFalse(rules.contains("!**/secrets/*"));
         assertFalse(rules.stream().anyMatch(rule -> rule.startsWith("!") && !rule.endsWith(".env.example")
-                && !rule.equals("!target/keycloak-tencent-captcha-authenticator-0.1.0.jar")));
+                && !rule.equals("!target/keycloak-tencent-captcha-authenticator-0.1.1.jar")));
     }
 
     @Test
