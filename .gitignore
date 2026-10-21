@@ -1,5 +1,6 @@
 # Maven build output and generated release artifacts
 target/
+dist/
 dependency-reduced-pom.xml
 bom.json
 bom.xml

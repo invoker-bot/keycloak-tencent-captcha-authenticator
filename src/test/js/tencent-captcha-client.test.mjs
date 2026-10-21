@@ -77,6 +77,46 @@ function formDocument() {
     };
 }
 
+function bootstrapFixture() {
+    const scripts = scriptDocument();
+    const forms = formDocument();
+    const document = {
+        scripts: scripts.scripts,
+        head: scripts.head,
+        forms: forms.forms,
+        body: forms.body,
+        createElement: tagName => tagName === "script"
+            ? scripts.createElement(tagName)
+            : forms.createElement(tagName)
+    };
+    const listeners = new Map();
+    const root = {
+        dataset: {
+            appId: "123456789",
+            aidEncrypted: "encrypted",
+            scriptUrl: EXPECTED_URL,
+            cspNonce: "nonce-from-data",
+            loginAction: "https://id.example.test/login-action?code=opaque&execution=exact",
+            browserError: "Browser error",
+            retryLabel: "Retry"
+        }
+    };
+    const button = {
+        disabled: false,
+        textContent: "Verify",
+        addEventListener(name, listener) {
+            listeners.set(name, listener);
+        }
+    };
+    const status = { textContent: "" };
+    document.getElementById = id => ({
+        "tencent-captcha-client": root,
+        "tencent-captcha-action": button,
+        "tencent-captcha-status": status
+    })[id] ?? null;
+    return {button, document, forms, listeners, scripts, status};
+}
+
 test("exports and enforces the exact Tencent script URL with a nonce", async () => {
     assert.equal(TENCENT_CAPTCHA_SCRIPT_URL, EXPECTED_URL);
     const document = scriptDocument();
@@ -141,8 +181,7 @@ test("constructs TencentCaptcha with exactly aidEncrypted and returns trimmed pr
 for (const [name, result, error] of [
     ["cancelled challenge", { ret: 2 }, "captcha-not-completed"],
     ["empty callback", undefined, "captcha-not-completed"],
-    ["empty proof", { ret: 0, ticket: " ", randstr: "rand" }, "captcha-invalid-proof"],
-    ["disaster proof", { ret: 0, ticket: "trerror_123", randstr: "rand" }, "captcha-invalid-proof"]
+    ["empty proof", { ret: 0, ticket: " ", randstr: "rand" }, "captcha-invalid-proof"]
 ]) {
     test(`does not accept ${name}`, async () => {
         const window = {
@@ -163,6 +202,86 @@ for (const [name, result, error] of [
         );
     });
 }
+
+test("does not accept disaster proof and reports only a safe numeric diagnostic", async () => {
+    const diagnostics = [];
+    const window = {
+        TencentCaptcha: function TencentCaptcha(appId, callback) {
+            this.show = () => callback({
+                ret: 0,
+                ticket: "trerror_sensitive-ticket",
+                randstr: "sensitive-randstr",
+                errorCode: 1003,
+                errorMessage: "sensitive-provider-message"
+            });
+        }
+    };
+
+    await assert.rejects(
+        solveCaptcha({
+            appId: "123",
+            aidEncrypted: "encrypted",
+            scriptUrl: EXPECTED_URL,
+            cspNonce: "nonce",
+            document: scriptDocument(),
+            window,
+            reportError: diagnostic => diagnostics.push(diagnostic)
+        }),
+        /captcha-invalid-proof/
+    );
+    assert.deepEqual(diagnostics, [{category: "disaster-ticket", errorCode: 1003}]);
+});
+
+for (const [name, result] of [
+    ["missing errorCode", {ret: 0, ticket: "trerror_missing", randstr: "randstr"}],
+    ["non-integral errorCode", {ret: 0, ticket: "trerror_fractional", randstr: "randstr", errorCode: 1003.5}]
+]) {
+    test(`reports null for disaster proof with ${name}`, async () => {
+        const diagnostics = [];
+        const window = {
+            TencentCaptcha: function TencentCaptcha(appId, callback) {
+                this.show = () => callback(result);
+            }
+        };
+
+        await assert.rejects(
+            solveCaptcha({
+                appId: "123",
+                aidEncrypted: "encrypted",
+                scriptUrl: EXPECTED_URL,
+                cspNonce: "nonce",
+                document: scriptDocument(),
+                window,
+                reportError: diagnostic => diagnostics.push(diagnostic)
+            }),
+            /captcha-invalid-proof/
+        );
+        assert.deepEqual(diagnostics, [{category: "disaster-ticket", errorCode: null}]);
+    });
+}
+
+test("rejects disaster proof even when the diagnostic sink throws", async () => {
+    const window = {
+        TencentCaptcha: function TencentCaptcha(appId, callback) {
+            this.show = () => callback({ret: 0, ticket: "trerror_1003", randstr: "randstr", errorCode: 1003});
+        }
+    };
+
+    await assert.rejects(
+        solveCaptcha({
+            appId: "123",
+            aidEncrypted: "encrypted",
+            scriptUrl: EXPECTED_URL,
+            cspNonce: "nonce",
+            document: scriptDocument(),
+            window,
+            reportError() {
+                throw new Error("diagnostic-sink-failed");
+            }
+        }),
+        /captcha-invalid-proof/
+    );
+});
 
 test("submits ticket and randstr only to the exact login action", () => {
     const document = formDocument();
@@ -223,43 +342,7 @@ test("single-flight controller prevents duplicate activation and submission", as
 });
 
 test("bootstrap reads configuration from the exact external module element", async () => {
-    const scripts = scriptDocument();
-    const forms = formDocument();
-    const document = {
-        scripts: scripts.scripts,
-        head: scripts.head,
-        forms: forms.forms,
-        body: forms.body,
-        createElement: tagName => tagName === "script"
-            ? scripts.createElement(tagName)
-            : forms.createElement(tagName)
-    };
-
-    const listeners = new Map();
-    const root = {
-        dataset: {
-            appId: "123456789",
-            aidEncrypted: "encrypted",
-            scriptUrl: EXPECTED_URL,
-            cspNonce: "nonce-from-data",
-            loginAction: "https://id.example.test/login-action?code=opaque&execution=exact",
-            browserError: "Browser error",
-            retryLabel: "Retry"
-        }
-    };
-    const button = {
-        disabled: false,
-        textContent: "Verify",
-        addEventListener(name, listener) {
-            listeners.set(name, listener);
-        }
-    };
-    const status = { textContent: "" };
-    document.getElementById = id => ({
-        "tencent-captcha-client": root,
-        "tencent-captcha-action": button,
-        "tencent-captcha-status": status
-    })[id] ?? null;
+    const {document, listeners} = bootstrapFixture();
 
     let captured;
     const window = {};
@@ -279,4 +362,37 @@ test("bootstrap reads configuration from the exact external module element", asy
     assert.equal(document.forms[0].action,
         "https://id.example.test/login-action?code=opaque&execution=exact");
     assert.deepEqual(document.forms[0].children.map(({name}) => name), ["ticket", "randstr"]);
+});
+
+test("bootstrap wires console.warn to receive only the safe disaster diagnostic", async () => {
+    const {document, listeners, status} = bootstrapFixture();
+    const diagnostics = [];
+    const window = {
+        console: {
+            warn(...args) {
+                diagnostics.push(args);
+            }
+        }
+    };
+    bootstrapTencentCaptcha(document, window);
+
+    const activation = listeners.get("click")();
+    window.TencentCaptcha = function TencentCaptcha(appId, callback) {
+        this.show = () => callback({
+            ret: 0,
+            ticket: "trerror_sensitive-ticket",
+            randstr: "sensitive-randstr",
+            errorCode: 1003,
+            errorMessage: "sensitive-provider-message"
+        });
+    };
+    document.scripts[0].dispatch("load");
+    await activation;
+
+    assert.deepEqual(diagnostics, [[
+        "tencent-captcha-diagnostic",
+        '{"category":"disaster-ticket","errorCode":1003}'
+    ]]);
+    assert.equal(document.forms.length, 0);
+    assert.equal(status.textContent, "Browser error");
 });
