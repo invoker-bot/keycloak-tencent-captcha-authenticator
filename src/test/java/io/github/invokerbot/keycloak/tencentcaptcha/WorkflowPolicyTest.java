@@ -7,8 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
@@ -79,6 +81,19 @@ class WorkflowPolicyTest {
     }
 
     @Test
+    void codeqlActionsUseOneVersionAcrossAllJobs() throws IOException {
+        Set<String> revisions = new HashSet<>();
+        Matcher actions = ACTION.matcher(readWorkflow("codeql.yml"));
+        while (actions.find()) {
+            if (actions.group(1).startsWith("github/codeql-action/")) {
+                revisions.add(actions.group(2));
+            }
+        }
+        assertEquals(1, revisions.size(),
+                "CodeQL init, analyze, and post-actions must use the same revision: " + revisions);
+    }
+
+    @Test
     void gitleaksScansPullRequestsAndFullHistory() throws IOException {
         String scan = readWorkflow("secret-scan.yml");
         assertContainsAll("secret-scan.yml", scan, "pull_request:", "push:", "fetch-depth: 0",
@@ -132,7 +147,7 @@ class WorkflowPolicyTest {
     private static String readWorkflow(String name) throws IOException {
         Path workflow = PROJECT.resolve(".github/workflows").resolve(name);
         assertTrue(Files.isRegularFile(workflow), workflow.toString());
-        return Files.readString(workflow);
+        return Files.readString(workflow).replace("\r\n", "\n");
     }
 
     private static void assertContainsAll(String file, String text, String... expected) {
