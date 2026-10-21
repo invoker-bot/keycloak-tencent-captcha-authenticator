@@ -135,6 +135,30 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>content-addressed-browser-module</id>
+                        <phase>process-resources</phase>
+                        <goals><goal>run</goal></goals>
+                        <configuration>
+                            <target>
+                                <property name="captcha.resource.directory" value="${project.build.outputDirectory}/theme-resources/resources/js"/>
+                                <delete>
+                                    <fileset dir="${captcha.resource.directory}" includes="tencent-captcha-client-*.js"/>
+                                </delete>
+                                <checksum file="${captcha.resource.directory}/tencent-captcha-client.js"
+                                          algorithm="SHA-256" property="captcha.client.digest"/>
+                                <copy file="${captcha.resource.directory}/tencent-captcha-client.js"
+                                      tofile="${captcha.resource.directory}/tencent-captcha-client-${captcha.client.digest}.js"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.16.0</version>
             </plugin>

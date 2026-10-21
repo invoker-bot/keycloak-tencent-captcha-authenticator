@@ -43,7 +43,7 @@ class CompressedModuleTest(unittest.TestCase):
     def verify(self, compressed_source: bytes):
         source = b'new TencentCaptcha(appId, finish, {aidEncrypted, userLanguage});'
         version = hashlib.sha256(source).hexdigest()
-        url = f'https://keycloak.test/resources/login/js/tencent-captcha-client.js?v={version}'
+        url = f'https://keycloak.test/resources/login/js/tencent-captcha-client-{version}.js'
         page = (
             '<script id="tencent-captcha-client" nonce="abcdefghijklmnopqrstuv" '
             f'src="{url}" data-script-url="{configure_and_verify.TENCENT_SCRIPT_URL}"></script>'

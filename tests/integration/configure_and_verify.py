@@ -220,12 +220,12 @@ class AcceptanceVerifier:
         )
 
         module_match = re.search(
-            r'id="tencent-captcha-client"[\s\S]*?src="([^"]*?/js/tencent-captcha-client\.js\?v=[0-9a-f]{64})"', page
+            r'id="tencent-captcha-client"[\s\S]*?src="([^"]*?/js/tencent-captcha-client-([0-9a-f]{64})\.js)"', page
         )
         if module_match is None:
             raise AcceptanceError("captcha-browser-module-missing")
         module_url = urllib.parse.urljoin(response.url, html.unescape(module_match.group(1)))
-        version = urllib.parse.parse_qs(urllib.parse.urlparse(module_url).query)['v'][0]
+        version = module_match.group(2)
         for encoding in ('identity', 'gzip'):
             module = _request(module_url, headers={'Accept-Encoding': encoding})
             if module.status != 200:
