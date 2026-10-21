@@ -59,8 +59,8 @@ class PackagedResourcesTest {
         assertTrue(template.contains("${url.resourcesPath}/css/tencent-captcha.css"));
         assertTrue(Pattern.compile("(?s)<script(?=[^>]*id=\"tencent-captcha-client\")"
                 + "(?=[^>]*type=\"module\")(?=[^>]*nonce=\"\\$\\{cspNonce}\")"
-                + "(?=[^>]*src=\"\\$\\{url\\.resourcesPath}/js/tencent-captcha-client\\.js\")" + "[^>]*>\\s*</script>")
-                .matcher(template).find());
+                + "(?=[^>]*src=\"\\$\\{url\\.resourcesPath}/js/tencent-captcha-client\\.js\\?v=\\$\\{captchaClientVersion}\")"
+                + "[^>]*>\\s*</script>").matcher(template).find());
         assertTrue(template.contains("data-app-id=\"${captchaAppId}\""));
         assertTrue(template.contains("data-aid-encrypted=\"${aidEncrypted}\""));
         assertTrue(template.contains("data-script-url=\"${captchaScriptUrl}\""));

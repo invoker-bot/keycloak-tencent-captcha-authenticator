@@ -14,7 +14,7 @@
         <script id="tencent-captcha-client"
                 type="module"
                 nonce="${cspNonce}"
-                src="${url.resourcesPath}/js/tencent-captcha-client.js"
+                src="${url.resourcesPath}/js/tencent-captcha-client.js?v=${captchaClientVersion}"
                 data-app-id="${captchaAppId}"
                 data-language-tag="${captchaLanguage}"
                 data-auto-start="${captchaAutoStart?c}"

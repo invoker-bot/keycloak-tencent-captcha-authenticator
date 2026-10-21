@@ -217,7 +217,7 @@ class AcceptanceVerifier:
         )
 
         module_match = re.search(
-            r'id="tencent-captcha-client"[\s\S]*?src="([^"]*?/js/tencent-captcha-client\.js)"', page
+            r'id="tencent-captcha-client"[\s\S]*?src="([^"]*?/js/tencent-captcha-client\.js\?v=[0-9a-f]{64})"', page
         )
         if module_match is None:
             raise AcceptanceError("captcha-browser-module-missing")
@@ -225,6 +225,10 @@ class AcceptanceVerifier:
         module = _request(module_url)
         if module.status != 200:
             raise AcceptanceError(f"captcha-browser-module-status-{module.status}")
+        import hashlib
+        version = urllib.parse.parse_qs(urllib.parse.urlparse(module_url).query)['v'][0]
+        if version != hashlib.sha256(module.body).hexdigest():
+            raise AcceptanceError("captcha-browser-module-version-mismatch")
         try:
             module_source = module.body.decode("utf-8")
         except UnicodeDecodeError:

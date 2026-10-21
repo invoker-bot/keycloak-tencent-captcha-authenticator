@@ -175,9 +175,9 @@ public final class TencentCaptchaAuthenticator implements Authenticator {
                 clock.instant(), AID_TTL, iv);
 
         LoginFormsProvider form = context.form().setAttribute("captchaAppId", secrets.captchaAppId())
-                .setAttribute("captchaAutoStart", !failure).setAttribute("aidEncrypted", aidEncrypted)
-                .setAttribute("captchaScriptUrl", CAPTCHA_SCRIPT_URL).setAttribute("cspNonce", cspNonce)
-                .setAttribute("captchaLanguage",
+                .setAttribute("captchaClientVersion", clientVersion()).setAttribute("captchaAutoStart", !failure)
+                .setAttribute("aidEncrypted", aidEncrypted).setAttribute("captchaScriptUrl", CAPTCHA_SCRIPT_URL)
+                .setAttribute("cspNonce", cspNonce).setAttribute("captchaLanguage",
                         context.getSession().getContext().resolveLocale(context.getUser()).toLanguageTag());
         if (errorKey != null) {
             form.setError(errorKey);
@@ -187,6 +187,16 @@ public final class TencentCaptchaAuthenticator implements Authenticator {
             context.failureChallenge(AuthenticationFlowError.INVALID_CREDENTIALS, response);
         } else {
             context.challenge(response);
+        }
+    }
+
+    private static String clientVersion() {
+        try (var resource = TencentCaptchaAuthenticator.class
+                .getResourceAsStream("/theme-resources/resources/js/tencent-captcha-client.js")) {
+            byte[] bytes = Objects.requireNonNull(resource, "captcha-client-missing").readAllBytes();
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+        } catch (IOException | GeneralSecurityException exception) {
+            throw new IllegalStateException("captcha-client-version-unavailable");
         }
     }
 

@@ -122,6 +122,14 @@ class TencentCaptchaAuthenticatorTest {
     }
 
     @Test
+    void challengeIncludesContentVersionForBrowserCacheInvalidation() {
+        authenticator(() -> SECRETS, acceptedVerifier()).authenticate(context);
+        ArgumentCaptor<String> version = ArgumentCaptor.forClass(String.class);
+        verify(form).setAttribute(eq("captchaClientVersion"), version.capture());
+        assertTrue(version.getValue().matches("[0-9a-f]{64}"));
+    }
+
+    @Test
     void challengeCarriesPublicAttributesAndRequestScopedSecurityHeaders() {
         TencentCaptchaAuthenticator authenticator = authenticator(() -> SECRETS, acceptedVerifier());
 
