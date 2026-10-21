@@ -5,7 +5,7 @@
     <#elseif section = "form">
         <link rel="stylesheet" href="${url.resourcesPath}/css/tencent-captcha.css">
         <div class="tencent-captcha" data-captcha-challenge>
-            <p class="tencent-captcha__prompt">${msg("captchaPrompt")}</p>
+            <p class="tencent-captcha__prompt">${msg(captchaAutoStart?then("captchaAutomaticPrompt", "captchaPrompt"))}</p>
             <button class="tencent-captcha__button" id="tencent-captcha-action" type="button">
                 ${msg("captchaAction")}
             </button>
@@ -16,12 +16,14 @@
                 nonce="${cspNonce}"
                 src="${url.resourcesPath}/js/tencent-captcha-client.js"
                 data-app-id="${captchaAppId}"
-            data-language-tag="${captchaLanguage}"
+                data-language-tag="${captchaLanguage}"
+                data-auto-start="${captchaAutoStart?c}"
                 data-aid-encrypted="${aidEncrypted}"
                 data-script-url="${captchaScriptUrl}"
                 data-csp-nonce="${cspNonce}"
                 data-login-action="${url.loginAction}"
                 data-browser-error="${msg('captchaBrowserError')}"
+                data-verifying-label="${msg('captchaChecking')}"
                 data-retry-label="${msg('captchaRetry')}"></script>
     </#if>
 </@layout.registrationLayout>

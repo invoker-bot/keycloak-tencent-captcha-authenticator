@@ -9,7 +9,7 @@ This document describes the `0.1.x` trust boundaries and fail-closed behavior. I
 3. On Tencent callback success, the local module posts only `ticket` and `randstr` to Keycloak's exact `url.loginAction`.
 4. Keycloak obtains the client IP from its connection context and sends `Ticket`, `Randstr`, `UserIp`, `CaptchaAppId`, `AppSecretKey`, and `CaptchaType=9` in the HTTPS request body to `https://captcha.tencentcloudapi.com` using `DescribeCaptchaResult` API version `2019-07-22`.
 5. `TENCENT_SECRET_ID` is transmitted in the TC3 `Authorization` header as the `Credential=` identifier, followed by its credential scope. `TENCENT_SECRET_KEY` is used only by the local HMAC key-derivation and request-signing chain and is never transmitted.
-6. Keycloak accepts only an integral `CaptchaCode == 1`.
+6. Keycloak accepts only integral `CaptchaCode == 1` and `EvilLevel == 0`, including when Tencent returns a valid ticket for a malicious request in invisible/perception mode.
 
 Privacy impact: Tencent-hosted code executes in the user's login browser. CAPTCHA proof fields, the public application ID, its server verification key, the client IP, and the Tencent API identity identifier are transmitted to Tencent. The Tencent API signing key is not transmitted. Operators must review Tencent Cloud's applicable terms, privacy and regional-processing documentation, define retention/account controls, and disclose this processing to users as required.
 
@@ -73,7 +73,8 @@ The outcome is fail-closed for:
 - DNS, TLS, connection, interruption, timeout, or other transport failures;
 - non-2xx HTTP responses;
 - invalid JSON, missing response objects, Tencent API errors, or raw response ambiguity;
-- absent, non-integral, out-of-range, or non-`1` `CaptchaCode`.
+- absent, non-integral, out-of-range, or non-`1` `CaptchaCode`;
+- absent, null, non-integral, out-of-range, or non-`0` `EvilLevel`.
 
 There is no fail-open switch. Configuration failure returns a generic service-unavailable challenge; proof rejection returns a generic verification failure and a fresh challenge.
 

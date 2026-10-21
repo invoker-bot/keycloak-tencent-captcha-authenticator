@@ -90,7 +90,7 @@ export async function solveCaptcha({appId, aidEncrypted, languageTag, scriptUrl,
                 reject(captchaError("captcha-invalid-proof"));
                 return;
             }
-            if (ticket === "" || randstr === "") {
+            if (ticket === "" || randstr === "" || (result.errorCode != null && result.errorCode !== 0)) {
                 reject(captchaError("captcha-invalid-proof"));
                 return;
             }
@@ -172,8 +172,9 @@ export function bootstrapTencentCaptcha(document, window) {
             : undefined
     });
 
-    button.addEventListener("click", async () => {
+    const run = async () => {
         button.disabled = true;
+        button.textContent = root.dataset.verifyingLabel ?? button.textContent;
         status.textContent = "";
         try {
             await controller.run();
@@ -182,7 +183,11 @@ export function bootstrapTencentCaptcha(document, window) {
             button.textContent = root.dataset.retryLabel;
             button.disabled = false;
         }
-    });
+    };
+    button.addEventListener("click", run);
+    // The server disables automatic activation on rejection pages, preventing
+    // automatic POST/rechallenge loops. Cancellation/network failures need a click.
+    if (root.dataset.autoStart === "true") void run();
     return controller;
 }
 

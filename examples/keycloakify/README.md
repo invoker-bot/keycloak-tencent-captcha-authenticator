@@ -55,3 +55,22 @@ Verify a built custom theme against the real provider in a disposable TLS fixtur
 ```sh
 python3 tests/integration/run_registration.py --theme-jar /path/to/invoker-shadcn.jar
 ```
+
+## Automatic and invisible verification
+
+After the multilingual adapter, apply:
+
+```sh
+node examples/keycloakify/patch-invisible.mjs /path/to/theme-source
+```
+
+Rebuild the theme together with the updated provider. The server's boolean
+`captchaAutoStart` starts verification once on a new challenge. A server rejection
+sets it to `false`; cancellation and browser failures also require a manual retry.
+The React adapter guards repeated effects and reuses the single-flight controller.
+It retains the selected language, existing layout, and required-field filtering.
+
+Choose **Invisible verification** in the Tencent console for fully invisible
+checks, or **Suspicious verification** to show challenges only when Tencent
+requires one. These are application-wide Tencent settings, not client-side
+bypass flags. See [mode and server requirements](../../docs/configuration.md#invisible-verification).

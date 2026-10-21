@@ -95,6 +95,7 @@ function bootstrapFixture() {
             appId: "123456789",
             aidEncrypted: "encrypted",
             languageTag: "zh-CN",
+            autoStart: "false",
             scriptUrl: EXPECTED_URL,
             cspNonce: "nonce-from-data",
             loginAction: "https://id.example.test/login-action?code=opaque&execution=exact",
@@ -115,7 +116,7 @@ function bootstrapFixture() {
         "tencent-captcha-action": button,
         "tencent-captcha-status": status
     })[id] ?? null;
-    return {button, document, forms, listeners, scripts, status};
+    return {button, document, forms, listeners, scripts, status, root};
 }
 
 test("exports and enforces the exact Tencent script URL with a nonce", async () => {
@@ -203,6 +204,7 @@ test("the bundled page passes its resolved Keycloak locale through bootstrap", a
 for (const [name, result, error] of [
     ["cancelled challenge", { ret: 2 }, "captcha-not-completed"],
     ["empty callback", undefined, "captcha-not-completed"],
+    ["invisible timeout with a normal-looking ticket", { ret: 0, ticket: "ticket", randstr: "rand", errorCode: 1085 }, "captcha-invalid-proof"],
     ["empty proof", { ret: 0, ticket: " ", randstr: "rand" }, "captcha-invalid-proof"]
 ]) {
     test(`does not accept ${name}`, async () => {
@@ -384,6 +386,49 @@ test("bootstrap reads configuration from the exact external module element", asy
     assert.equal(document.forms[0].action,
         "https://id.example.test/login-action?code=opaque&execution=exact");
     assert.deepEqual(document.forms[0].children.map(({name}) => name), ["ticket", "randstr"]);
+});
+
+test("automatically verifies and submits once without a click", async () => {
+    const {document, root, button} = bootstrapFixture();
+    root.dataset.autoStart = "true";
+    let shows = 0;
+    const window = {TencentCaptcha: function TencentCaptcha(appId, callback) {
+        this.show = () => { shows++; callback({ret: 0, ticket: "ticket", randstr: "rand"}); };
+    }};
+    bootstrapTencentCaptcha(document, window);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(shows, 1);
+    assert.equal(document.forms.length, 1);
+    assert.equal(button.disabled, true);
+});
+
+test("automatic failure stops and permits one explicit retry", async () => {
+    const {document, root, button, status, listeners} = bootstrapFixture();
+    root.dataset.autoStart = "true";
+    let shows = 0;
+    const window = {TencentCaptcha: function TencentCaptcha(appId, callback) {
+        this.show = () => { shows++; callback(shows === 1 ? {ret: 2} : {ret: 0, ticket: "ticket", randstr: "rand"}); };
+    }};
+    bootstrapTencentCaptcha(document, window);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(shows, 1);
+    assert.equal(document.forms.length, 0);
+    assert.equal(button.disabled, false);
+    assert.equal(status.textContent, "Browser error");
+    await listeners.get("click")();
+    assert.equal(shows, 2);
+    assert.equal(document.forms.length, 1);
+});
+
+test("server rejection pages do not start another automatic attempt", async () => {
+    const {document} = bootstrapFixture();
+    let shows = 0;
+    bootstrapTencentCaptcha(document, {TencentCaptcha: function TencentCaptcha() {
+        this.show = () => shows++;
+    }});
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(shows, 0);
+    assert.equal(document.forms.length, 0);
 });
 
 test("bootstrap wires console.warn to receive only the safe disaster diagnostic", async () => {

@@ -109,6 +109,16 @@ final class TencentCaptchaVerifier {
             return new CaptchaVerificationResult(false, "captcha-rejected", code, null,
                     responseNode.path("RequestId").asText(null));
         }
+        // A valid ticket alone is insufficient in invisible/perception mode.
+        // Require Tencent's explicit benign risk result, never a coerced default.
+        JsonNode risk = responseNode.get("EvilLevel");
+        if (risk == null || !risk.isIntegralNumber() || !risk.canConvertToInt()) {
+            return rejected("invalid-response", code);
+        }
+        if (risk.intValue() != 0) {
+            return new CaptchaVerificationResult(false, "risk-rejected", code, null,
+                    responseNode.path("RequestId").asText(null));
+        }
         return new CaptchaVerificationResult(true, "accepted", code);
     }
 

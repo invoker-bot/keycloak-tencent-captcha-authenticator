@@ -21,6 +21,36 @@ Create a Web/App application in the Tencent Cloud CAPTCHA console. Record its de
 
 Validate the policy for your account before deployment. The provider uses TC3-HMAC-SHA256 with the Tencent API identity; it does not bundle a Tencent SDK. Official references: [CAM policy elements](https://cloud.tencent.com/document/product/598/10603) and [`DescribeCaptchaResult`](https://cloud.tencent.com/document/api/1110/36926).
 
+## Invisible verification
+
+The current development version supports Tencent's invisible and suspicious-user
+verification modes. Released v0.1.2 does not include this behavior. Upgrade the
+provider and any custom CAPTCHA template before changing the Tencent mode.
+
+On a new login or registration challenge, verification starts automatically. A
+successful SDK callback is posted to Keycloak, which accepts only integral
+`CaptchaCode == 1` **and** integral `EvilLevel == 0`. Missing, null, malformed,
+unknown, and malicious risk values are rejected. This check also applies to
+interactive mode; a browser callback alone never grants access.
+
+In the Tencent console, select the existing Web/App application's verification
+mechanism: **Invisible verification** never displays a challenge; **Suspicious
+verification** displays one only when Tencent requires it; **Always verify**
+continues to display a challenge on automatic activation. The choice affects all
+consumers of that Tencent application. Keep its existing domain, encryption,
+risk-level, and server credential settings. A browser option cannot select or
+bypass the server's mechanism.
+
+On server rejection the new `captchaAutoStart` attribute is `false`, preventing
+automatic request loops. Browser cancellation and errors, including SDK error
+1085, also stop and expose a manual retry. No failed proof is automatically
+replayed. Custom shadcn templates need the
+[automatic activation adapter](../examples/keycloakify/README.md#automatic-and-invisible-verification).
+
+References: [Tencent verification mechanisms](https://cloud.tencent.com/document/product/1110/36831),
+[`EvilLevel` result semantics](https://cloud.tencent.com/document/api/1110/36926),
+and [Web SDK callbacks](https://cloud.tencent.com/document/product/1110/36841).
+
 ## Exact secret schema
 
 Create one restricted runtime file with exactly these four assignments in any order:

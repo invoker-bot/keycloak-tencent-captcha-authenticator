@@ -42,7 +42,11 @@ def verify(base_url, theme=None):
                     assert res.status == 200
                     return res.read().decode()
 
-            def challenge(page, language):
+            def challenge(page, language, auto_start=None):
+                if auto_start is not None:
+                    value = str(auto_start).lower()
+                    assert (re.search(r'"captchaAutoStart"\s*:\s*' + value, page) if theme
+                            else f'data-auto-start="{value}"' in page), 'automatic activation contract'
                 if theme:
                     assert re.search(r'"pageId"\s*:\s*"tencent-captcha(?:\.ftl)?"', page)
                     assert re.search(r'"captchaLanguage"\s*:\s*"' + re.escape(language) + '"', page)
@@ -57,10 +61,10 @@ def verify(base_url, theme=None):
                                             'kc_locale': selected, 'ui_locales': selected})
             url = base_url + '/realms/' + PROTECTED_REALM + '/protocol/openid-connect/' + flow + '?' + query
             page = request(url)
-            action = challenge(page, selected)
+            action = challenge(page, selected, True)
             # A failed proof must retain both the selected locale and the server gate.
             page = request(action, {})
-            action = challenge(page, selected)
+            action = challenge(page, selected, False)
             expected_error = ('Verification was not accepted' if selected == 'en' else '验证未通过')
             assert expected_error in page
             # Follow Keycloak's own locale switch link, preserving the authentication session.
@@ -71,6 +75,14 @@ def verify(base_url, theme=None):
                 switch = json.loads('"' + switch + '"')
             page = request(urllib.parse.urljoin(base_url, switch))
             action = challenge(page, other)
+            # The upstream ticket is valid in all these cases, but its risk
+            # verdict must still block BOTH login and direct registration.
+            for risk in ('risk', 'no-risk', 'invalid-risk'):
+                page = request(action, {'ticket': 'integration-valid-' + risk + '-' + uuid.uuid4().hex,
+                                        'randstr': 'integration-randstr'})
+                action = challenge(page, other, False)
+                assert expected_page + '.ftl"' not in page
+                results[flow + '-' + selected + '-' + risk + '-blocked'] = True
             page = request(action, {'ticket': 'integration-valid-' + uuid.uuid4().hex,
                                     'randstr': 'integration-randstr'})
             if theme:

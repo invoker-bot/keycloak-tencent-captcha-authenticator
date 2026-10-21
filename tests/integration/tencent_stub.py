@@ -38,7 +38,14 @@ class Handler(BaseHTTPRequestHandler):
                     and data.get('Randstr') == 'integration-randstr')
         if accepted:
             used.add(ticket)
-        result = json.dumps({'Response': {'CaptchaCode': 1 if accepted else 9}}).encode()
+        response = {'CaptchaCode': 1 if accepted else 9, 'EvilLevel': 0}
+        if ticket.startswith('integration-valid-risk-'):
+            response['EvilLevel'] = 100
+        elif ticket.startswith('integration-valid-no-risk-'):
+            del response['EvilLevel']
+        elif ticket.startswith('integration-valid-invalid-risk-'):
+            response['EvilLevel'] = '0'
+        result = json.dumps({'Response': response}).encode()
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
         self.send_header('Content-Length', str(len(result)))
