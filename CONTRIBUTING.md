@@ -13,6 +13,7 @@ Thank you for helping improve this unofficial Keycloak extension.
 
 - Java 21 or newer (the artifact targets Java 21)
 - Maven Wrapper committed in this repository
+- [Task v3](https://taskfile.dev/docs/installation) for the common command entry points
 - Node.js 20 or newer
 - Python 3 for integration harness unit tests
 - Linux and Docker Compose only for the fresh-Keycloak container acceptance suite
@@ -23,24 +24,39 @@ Build dependencies are resolved by Maven and npm. Do not add credentials to Mave
 
 For behavior changes, add a focused failing test, run it and confirm the expected RED reason, make the smallest implementation, then run the focused test and complete suite to GREEN. Keep production code, browser behavior, documentation, and acceptance fixtures consistent.
 
-Run the local verification set:
+Run the local verification set through the root `Taskfile.yml`:
 
 ```bash
-./mvnw -B verify
-npm test
-python3 -m unittest discover -s tests/integration -p 'test_*.py'
-python3 -m unittest discover -s scripts/tests
+task verify
 ```
 
-On a Linux host with Docker available, build first and then run the bounded fresh-container acceptance suite:
+Run `task` or `task --list` to list all available commands. The Taskfile keeps
+the underlying tools available directly:
+
+| Task | Underlying operation |
+| --- | --- |
+| `task build` | `./mvnw -B verify` (JAR, SBOM, Java tests, and formatting checks) |
+| `task test` | Run `test:java`, `test:js`, and `test:python` in order |
+| `task test:java` | `./mvnw -B test` |
+| `task test:js` | `npm test` |
+| `task test:python` | `python3 -m unittest discover -s tests/integration -p 'test_*.py'`, then `python3 -m unittest discover -s scripts/tests` |
+| `task verify` | Run `build`, `test:js`, and `test:python` in order |
+| `task format` / `task format:check` | `./mvnw -B spotless:apply` / `./mvnw -B spotless:check` |
+| `task clean` | `./mvnw -B clean` (remove `target/`) |
+
+Use `JAVA_HOME` to select a JDK 21 or newer before invoking Task. Build tasks use
+the existing Maven `.env` loading for optional Sentry defaults.
+
+On a Linux host with Docker Compose available, build and run both bounded
+fresh-container acceptance suites:
 
 ```bash
-./mvnw -B verify
-python3 tests/integration/run.py
-python3 tests/integration/run_public_example.py
+task test:integration
 ```
 
-Both runners are bounded and always attempt cleanup. The public-example runner refuses to start when its target secret path already exists (including a symlink), invokes the shipped secret helper, verifies its Linux metadata contract, and removes only its generated secret. They use synthetic fixtures and must never be given live Tencent credentials. Live Tencent verification is an operator acceptance activity, not a pull-request test.
+This runs `task build`, `python3 tests/integration/run.py`, and
+`python3 tests/integration/run_public_example.py` in order. The task rejects
+non-Linux hosts before building. Both runners are bounded and always attempt cleanup. The public-example runner refuses to start when its target secret path already exists (including a symlink), invokes the shipped secret helper, verifies its Linux metadata contract, and removes only its generated secret. They use synthetic fixtures and must never be given live Tencent credentials. Live Tencent verification is an operator acceptance activity, not a pull-request test.
 
 Before submitting, run `git diff --check` and scan public files for unfinished markers, internal hostnames, private infrastructure identifiers, and secret-store paths. The expected scan output is empty.
 
@@ -51,12 +67,18 @@ Pull requests and pushes to `main` run the same Java, Node.js, fresh-Keycloak ac
 To test the release asset contract without creating a tag or remote release, run:
 
 ```bash
-./mvnw -B verify
-python3 scripts/release_artifacts.py 0.1.0
-python3 scripts/verify_release_artifacts.py dist
+task artifacts
 ```
 
-The generated `dist/` directory must contain only the thin provider JAR, `SHA256SUMS`, and the versioned CycloneDX JSON SBOM. The tag-only release workflow requires exact `v<project.version>` equality, reruns every acceptance gate, attests all three release subjects, and creates a GitHub Release. It does not build or publish a container image.
+This runs `task verify`, reads the version from `pom.xml`, invokes
+`python3 scripts/release_artifacts.py <version>`, and validates the result with
+`python3 scripts/verify_release_artifacts.py dist`. Use `task artifacts:verify`
+to check existing assets. The generated `dist/` directory is ignored by Git and
+must contain only the thin provider JAR, `SHA256SUMS`, and the versioned CycloneDX
+JSON SBOM. Generating artifacts replaces the previous `dist/` contents. Build
+public distributable artifacts without a local `.env` containing a Sentry DSN.
+
+The tag-only release workflow requires exact `v<project.version>` equality, reruns every acceptance gate, attests all three release subjects, and creates a GitHub Release. It does not build or publish a container image.
 
 Before any attestation or publication, the release workflow runs `scripts/verify_release_ref.py`. That behavioral gate fetches current `origin/main`, requires the checked-out tag commit to equal it exactly, and uses the bounded exact-SHA workflow waiter to require successful `ci.yml`, `codeql.yml`, and `secret-scan.yml` runs for that same commit.
 
