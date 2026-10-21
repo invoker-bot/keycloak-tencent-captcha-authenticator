@@ -94,6 +94,7 @@ function bootstrapFixture() {
         dataset: {
             appId: "123456789",
             aidEncrypted: "encrypted",
+            languageTag: "zh-CN",
             scriptUrl: EXPECTED_URL,
             cspNonce: "nonce-from-data",
             loginAction: "https://id.example.test/login-action?code=opaque&execution=exact",
@@ -156,7 +157,13 @@ test("deduplicates concurrent script loading and permits retry after an error", 
     await retry;
 });
 
-test("constructs TencentCaptcha with exactly aidEncrypted and returns trimmed proof", async () => {
+for (const [languageTag, expected] of [
+    ["zh-CN", "zh-cn"], ["en", "en"], ["EN_us", "en"],
+    ["zh-Hans", "zh-cn"], ["zh-Hant", "zh-tw"], ["zh-HK", "zh-hk"],
+    ["de-DE", "de"], ["pt-BR", "pt"], ["cs", "cs-cz"],
+    ["unsupported", "en"], [undefined, "en"]
+]) {
+test(`passes the selected locale ${languageTag} to Tencent instead of browser defaults`, async () => {
     let captured;
     const window = {
         TencentCaptcha: function TencentCaptcha(appId, callback, options) {
@@ -168,14 +175,29 @@ test("constructs TencentCaptcha with exactly aidEncrypted and returns trimmed pr
     const proof = await solveCaptcha({
         appId: "123456789",
         aidEncrypted: "encrypted",
+        languageTag,
         scriptUrl: EXPECTED_URL,
         cspNonce: "nonce",
         document: scriptDocument(),
         window
     });
 
-    assert.deepEqual(captured, { appId: "123456789", options: { aidEncrypted: "encrypted" } });
+    assert.deepEqual(captured, {
+        appId: "123456789", options: { aidEncrypted: "encrypted", userLanguage: expected }
+    });
     assert.deepEqual(proof, { ticket: "ticket", randstr: "rand" });
+});
+}
+
+test("the bundled page passes its resolved Keycloak locale through bootstrap", async () => {
+    const { document } = bootstrapFixture();
+    let options;
+    const window = { TencentCaptcha: function TencentCaptcha(appId, callback, received) {
+        options = received;
+        this.show = () => callback({ret: 0, ticket: "ticket", randstr: "rand"});
+    }};
+    await bootstrapTencentCaptcha(document, window).run();
+    assert.equal(options.userLanguage, "zh-cn");
 });
 
 for (const [name, result, error] of [
@@ -358,7 +380,7 @@ test("bootstrap reads configuration from the exact external module element", asy
     document.scripts[0].dispatch("load");
     await activation;
 
-    assert.deepEqual(captured, {appId: "123456789", options: {aidEncrypted: "encrypted"}});
+    assert.deepEqual(captured, {appId: "123456789", options: {aidEncrypted: "encrypted", userLanguage: "zh-cn"}});
     assert.equal(document.forms[0].action,
         "https://id.example.test/login-action?code=opaque&execution=exact");
     assert.deepEqual(document.forms[0].children.map(({name}) => name), ["ticket", "randstr"]);

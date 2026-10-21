@@ -84,11 +84,15 @@ server-resolved `required` flag is false before rendering and form validation.
 
 The built-in `tencent-captcha.ftl` works with Keycloak's active login theme and is the supported default. A realm login theme may override the same template while preserving:
 
-- attributes `captchaAppId`, `aidEncrypted`, `captchaScriptUrl`, `cspNonce`, and standard `url.loginAction`;
+- attributes `captchaAppId`, `aidEncrypted`, `captchaScriptUrl`, `cspNonce`, `captchaLanguage` (the resolved Keycloak locale), and standard `url.loginAction`;
 - exact POST field names `ticket` and `randstr`;
 - the request-scoped nonce on the local module script;
 - the exact Tencent script URL supplied by `captchaScriptUrl`;
 - accessible button/status behavior and generic localized error messages.
+
+Pass the current page locale to Tencent as `userLanguage`; the bundled client
+accepts `languageTag` and maps Keycloak language tags to SDK codes. Enable realm
+internationalization and supported locales to expose Keycloak's language menu.
 
 Do not expose `CAPTCHA_APP_SECRET_KEY`, `TENCENT_SECRET_ID`, or `TENCENT_SECRET_KEY` to the template. Do not replace the form action with an application URL or accept a caller-controlled action target.
 

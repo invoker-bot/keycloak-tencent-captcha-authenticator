@@ -4,6 +4,12 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
+### Fixed
+
+- Follow the selected Keycloak language in Tencent's popup, with explicit SDK language mapping and English fallback.
+- Provide an optional shadcn adapter with English and Simplified Chinese CAPTCHA text, including server-rendered errors, and document enabling the language menu.
+- Exercise language switching and locale retention through server-verified login and direct registration in the disposable TLS integration suite.
+
 ## [0.1.1] - 2026-10-21
 
 ### Added

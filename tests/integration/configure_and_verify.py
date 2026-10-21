@@ -232,7 +232,7 @@ class AcceptanceVerifier:
         constructor_exact = (
             len(re.findall(r"new\s+TencentCaptcha\s*\(", module_source)) == 1
             and re.search(
-                r"new\s+TencentCaptcha\s*\(\s*appId\s*,\s*finish\s*,\s*\{\s*aidEncrypted\s*}\s*\)",
+                r"new\s+TencentCaptcha\s*\(\s*appId\s*,\s*finish\s*,\s*\{\s*aidEncrypted\s*,\s*userLanguage\s*}\s*\)",
                 module_source,
             )
             is not None
@@ -244,7 +244,7 @@ class AcceptanceVerifier:
             "embeddedTemplate": "data-captcha-challenge" in page,
             "challengeCspExact": csp_exact,
             "scriptUrlExact": script_url_exact,
-            "constructorOptionsAidEncryptedOnly": constructor_exact,
+            "constructorOptionsIncludeSelectedLanguage": constructor_exact,
             **isolation,
         }
 

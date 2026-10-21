@@ -6,7 +6,7 @@
 
     <groupId>io.github.invoker-bot</groupId>
     <artifactId>keycloak-tencent-captcha-authenticator</artifactId>
-    <version>0.1.1</version>
+    <version>0.1.2</version>
     <name>Keycloak Tencent CAPTCHA Authenticator</name>
     <description>An unofficial Tencent CAPTCHA authenticator for Keycloak</description>
     <url>https://github.com/invoker-bot/keycloak-tencent-captcha-authenticator</url>

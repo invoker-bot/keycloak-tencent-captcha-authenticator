@@ -176,7 +176,8 @@ public final class TencentCaptchaAuthenticator implements Authenticator {
 
         LoginFormsProvider form = context.form().setAttribute("captchaAppId", secrets.captchaAppId())
                 .setAttribute("aidEncrypted", aidEncrypted).setAttribute("captchaScriptUrl", CAPTCHA_SCRIPT_URL)
-                .setAttribute("cspNonce", cspNonce);
+                .setAttribute("cspNonce", cspNonce).setAttribute("captchaLanguage",
+                        context.getSession().getContext().resolveLocale(context.getUser()).toLanguageTag());
         if (errorKey != null) {
             form.setError(errorKey);
         }

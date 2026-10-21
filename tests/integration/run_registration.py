@@ -18,6 +18,7 @@ import uuid
 from configure_and_verify import AcceptanceVerifier
 from run import _available_loopback_port
 from verify_registration import verify
+from verify_locales import verify as verify_locales
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -30,6 +31,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--base-image', default='quay.io/keycloak/keycloak:26.7.0')
     parser.add_argument('--openssl', default='openssl')
+    parser.add_argument('--theme-jar', type=Path, help='Additionally verify an invoker-shadcn theme JAR')
     args = parser.parse_args()
     suffix = uuid.uuid4().hex[:12]
     network = 'captcha-registration-' + suffix
@@ -46,8 +48,12 @@ def main():
                  '-keystore', str(work / 'trust.p12'), '-storetype', 'PKCS12', '-storepass', 'changeit'])
             shutil.copy2(ROOT / 'tests/integration/tencent_stub.py', work / 'server.py')
             (work / 'captcha.env').write_bytes((ROOT / 'tests/integration/secrets/tencent-captcha.env.example').read_text().encode())
-            shutil.copy2(ROOT / 'target/keycloak-tencent-captcha-authenticator-0.1.1.jar', work / 'provider.jar')
-            (work / 'Dockerfile').write_text('FROM ' + args.base_image + '''
+            shutil.copy2(ROOT / 'target/keycloak-tencent-captcha-authenticator-0.1.2.jar', work / 'provider.jar')
+            theme_copy = ''
+            if args.theme_jar:
+                shutil.copy2(args.theme_jar, work / 'theme.jar')
+                theme_copy = 'COPY --chown=1000:0 theme.jar /opt/keycloak/providers/invoker-shadcn.jar\n'
+            (work / 'Dockerfile').write_text('FROM ' + args.base_image + '\n' + theme_copy + '''
 USER root
 COPY --chown=1000:0 captcha.env /run/secrets/tencent-captcha.env
 COPY --chown=1000:0 trust.p12 /tmp/test-trust.p12
@@ -80,9 +86,12 @@ ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
                     time.sleep(1)
             print('Testing registration gates', flush=True)
             results = verify(base)
+            results.update(verify_locales(base))
+            if args.theme_jar:
+                results['customThemeLocales'] = verify_locales(base, 'invoker-shadcn')
             calls = [json.loads(line) for line in run(['docker', 'logs', server]).splitlines()]
-            assert len(calls) == 3 and all(call['signed'] for call in calls)
-            assert [call['accepted'] for call in calls] == [False, True, False]
+            assert len(calls) == (11 if args.theme_jar else 7) and all(call['signed'] for call in calls)
+            assert [call['accepted'] for call in calls] == [False, True, False] + [True] * (len(calls) - 3)
             results['realProviderSignedTlsRequests'] = True
             print(json.dumps(results, indent=2))
         except Exception:

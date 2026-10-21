@@ -2,6 +2,25 @@ export const TENCENT_CAPTCHA_SCRIPT_URL = "https://turing.captcha.qcloud.com/TJC
 
 let pendingScript;
 
+// Tencent's language codes differ from Keycloak's BCP 47 tags. Never leave the
+// choice to the browser: its language may differ from the page's selection.
+const TENCENT_LANGUAGES = new Set((
+    "zh-cn zh-hk zh-tw en en-in ar cs-cz de es es-la fr fil he hi id it ja ko " +
+    "lo ms my nl pl pt pt-pt ro-ro ru th tr uk-ua ur vi"
+).split(" "));
+
+export function tencentCaptchaLanguage(languageTag) {
+    const tag = typeof languageTag === "string" ? languageTag.trim().replaceAll("_", "-").toLowerCase() : "";
+    if (TENCENT_LANGUAGES.has(tag)) return tag;
+    const language = tag.split("-")[0];
+    if (language === "zh") {
+        if (tag.includes("-hk")) return "zh-hk";
+        return tag.includes("-hant") || tag.includes("-tw") ? "zh-tw" : "zh-cn";
+    }
+    const regional = {cs: "cs-cz", ro: "ro-ro", uk: "uk-ua"}[language];
+    return regional ?? (TENCENT_LANGUAGES.has(language) ? language : "en");
+}
+
 function captchaError(code) {
     return new Error(code);
 }
@@ -45,7 +64,7 @@ export function loadTencentCaptcha(scriptUrl, cspNonce, document, window) {
     return promise;
 }
 
-export async function solveCaptcha({appId, aidEncrypted, scriptUrl, cspNonce, document, window, reportError}) {
+export async function solveCaptcha({appId, aidEncrypted, languageTag, scriptUrl, cspNonce, document, window, reportError}) {
     const TencentCaptcha = await loadTencentCaptcha(scriptUrl, cspNonce, document, window);
 
     return new Promise((resolve, reject) => {
@@ -79,7 +98,8 @@ export async function solveCaptcha({appId, aidEncrypted, scriptUrl, cspNonce, do
         };
 
         try {
-            const captcha = new TencentCaptcha(appId, finish, {aidEncrypted});
+            const userLanguage = tencentCaptchaLanguage(languageTag);
+            const captcha = new TencentCaptcha(appId, finish, {aidEncrypted, userLanguage});
             captcha.show();
         } catch {
             reject(captchaError("captcha-invocation-failed"));
@@ -138,6 +158,7 @@ export function bootstrapTencentCaptcha(document, window) {
     const controller = createSingleFlightCaptchaController({
         appId: root.dataset.appId,
         aidEncrypted: root.dataset.aidEncrypted,
+        languageTag: root.dataset.languageTag,
         scriptUrl: root.dataset.scriptUrl,
         cspNonce: root.dataset.cspNonce,
         loginAction: root.dataset.loginAction,
