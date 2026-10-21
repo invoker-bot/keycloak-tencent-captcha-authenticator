@@ -4,6 +4,23 @@
 
 An unofficial Keycloak authenticator that adds Tencent Cloud CAPTCHA as a standalone `REQUIRED` Browser Flow execution. It is delivered as one thin provider JAR and does not depend on a specific application, secret store, deployment platform, or third-party login theme.
 
+## Preview
+
+Add a dedicated security check before the login form, with server-side verification
+of Tencent's response. Here is the current integration in light and dark mode:
+
+| Light | Dark |
+| --- | --- |
+| [![CAPTCHA page in light mode](docs/images/captcha-light.jpg)](docs/images/captcha-light.jpg) | [![CAPTCHA page in dark mode](docs/images/captcha-dark.jpg)](docs/images/captcha-dark.jpg) |
+
+Actual browser captures of v0.1.1 on Keycloak 26.7.0, using a demo realm and a
+customized [Keycloakify shadcn theme](https://github.com/Oussemasahbeni/keycloakify-shadcn-starter).
+This optional theme supplies the card, colors, and mode switch; it is distributed
+separately. The provider also includes a default FreeMarker page. See the
+[custom theme contract](docs/authentication-flow.md#template-override-contract) and
+[capture details](docs/images/README.md). These images show the step before the
+Tencent challenge opens; registration requires its own authentication flow.
+
 Optional [Sentry diagnostics](docs/configuration.md#optional-sentry-diagnostics)
 report CAPTCHA server failures, including invalid Tencent API credentials. Fill
 `SENTRY_DSN` in the ignored root `.env` before `task build` (or `./mvnw -B verify`); no DSN is
