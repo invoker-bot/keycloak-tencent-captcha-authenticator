@@ -5,7 +5,10 @@ export const captchaTranslations = {
         captchaContinue: "Start verification",
         captchaRetry: "The verification challenge could not be completed. Please try again.",
         captchaVerificationFailed: "Verification was not accepted. Please try again.",
-        captchaConfigUnavailable: "Security verification is temporarily unavailable. Please try again later."
+        captchaConfigUnavailable: "Security verification is temporarily unavailable. Please try again later.",
+        themeHome: "Home",
+        themeLightMode: "Switch to light mode",
+        themeDarkMode: "Switch to dark mode"
     },
     "zh-CN": {
         captchaTitle: "安全验证",
@@ -13,7 +16,10 @@ export const captchaTranslations = {
         captchaContinue: "开始验证",
         captchaRetry: "未能完成人机验证，请重试。",
         captchaVerificationFailed: "验证未通过，请重试。",
-        captchaConfigUnavailable: "安全验证暂时不可用，请稍后重试。"
+        captchaConfigUnavailable: "安全验证暂时不可用，请稍后重试。",
+        themeHome: "主页",
+        themeLightMode: "切换至浅色模式",
+        themeDarkMode: "切换至深色模式"
     }
 };
 

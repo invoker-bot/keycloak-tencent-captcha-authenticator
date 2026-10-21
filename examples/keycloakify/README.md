@@ -30,6 +30,8 @@ node examples/keycloakify/patch-multilingual.mjs /path/to/theme-source
 This replaces misplaced CAPTCHA translations with complete English and Simplified
 Chinese messages, emits static literals for Keycloakify's server-message extractor,
 and passes `currentLanguage.languageTag` to the shared provider client. The client
+also follows asynchronous translation loading for the browser title and localizes
+the home and theme-toggle labels. The CAPTCHA client
 is copied from this repository's tested module, excluding the FTL-only DOM bootstrap.
 The optional third argument supplies that module's path for standalone theme builders.
 Apply this after installing the custom CAPTCHA page and before building its JAR.
