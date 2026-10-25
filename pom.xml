@@ -26,7 +26,7 @@
         <maven.compiler.release>21</maven.compiler.release>
         <keycloak.version>26.7.0</keycloak.version>
         <junit.version>6.1.3</junit.version>
-        <mockito.version>5.23.0</mockito.version>
+        <mockito.version>5.24.0</mockito.version>
         <!-- Optional local build defaults. Runtime environment takes precedence. -->
         <SENTRY_DSN></SENTRY_DSN>
         <SENTRY_ENVIRONMENT></SENTRY_ENVIRONMENT>
